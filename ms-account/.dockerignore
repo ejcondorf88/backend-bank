@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Maven
+/target
+*.jar
+*.war
+*.ear
+.mvn
+mvnw
+mvnw.cmd
+
+# IDE
+.idea
+*.iml
+.vscode
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Docker (don't ignore Dockerfile itself)
+.dockerignore
+docker-compose*.yml
+
+# Test files
+/src/test

@@ -1,0 +1,101 @@
+# ============================================================================
+# Bank Microservices - Docker Compose
+# ============================================================================
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Eureka Server - Service Discovery
+  # ==========================================================================
+  eureka-server:
+    build:
+      context: ./ms-eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_APPLICATION_NAME=ms-eureka-server
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+      - SERVER_PORT=8761
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # API Gateway
+  # ==========================================================================
+  gateway:
+    build:
+      context: ./ms-gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_APPLICATION_NAME=ms-gateway
+      - SERVER_PORT=8080
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Account Microservice
+  # ==========================================================================
+  ms-account:
+    build:
+      context: ./ms-account
+      dockerfile: Dockerfile
+    container_name: ms-account
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_APPLICATION_NAME=ms-account
+      - SERVER_PORT=8080
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Customer Microservice
+  # ==========================================================================
+  ms-customer:
+    build:
+      context: ./ms-customer
+      dockerfile: Dockerfile
+    container_name: ms-customer
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_APPLICATION_NAME=ms-customer
+      - SERVER_PORT=8080
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  bank-network:
+    driver: bridge
+    name: bank-network
