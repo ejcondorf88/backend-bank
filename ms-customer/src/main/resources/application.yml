@@ -1,0 +1,99 @@
+# ============================================================================
+# CONFIGURACION POR DEFECTO - DESARROLLO LOCAL
+# ============================================================================
+# Usa PostgreSQL local con Docker
+# Para Railway: SPRING_PROFILES_ACTIVE=railway
+# ============================================================================
+
+server:
+  port: 8081
+
+spring:
+  application:
+    name: ms-customer
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    # PostgreSQL local (Docker)
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      schema: ${DATABASE_SCHEMA:customer}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    default_schema: customer
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: ${DATABASE_SCHEMA:customer}
+
+# Eureka local activo
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    enabled: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+# RabbitMQ local
+rabbitmq:
+  host: ${RABBITMQ_HOST:localhost}
+  port: ${RABBITMQ_PORT:5672}
+  username: ${RABBITMQ_USER:guest}
+  password: ${RABBITMQ_PASSWORD:guest}
+  exchange:
+    customer:
+      name: customer.events
+      type: topic
+      durable: true
+  queue:
+    customer:
+      name: customer.events.queue
+      durable: true
+      routing-key: customer.#
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# Swagger/OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+  info:
+    title: Customer Service API
+    description: API REST para gestion de clientes
+    version: ${APP_VERSION:1.0.0}
+    contact:
+      name: Bank Development Team
+      email: dev@bank.com
+
+# Logging detallado para desarrollo
+logging:
+  level:
+    com.bank.customer: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
