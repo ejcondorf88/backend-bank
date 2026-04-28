@@ -5,18 +5,22 @@ spring:
   application:
     name: ms-account
   datasource:
-    url: jdbc:postgresql://localhost:5432/accountdb
+    url: jdbc:postgresql://localhost:5432/bankdb?currentSchema=account
     driver-class-name: org.postgresql.Driver
     username: postgres
     password: postgres
+    hikari:
+      schema: account
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: create-drop
+      default_schema: account
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        default_schema: account
 
 eureka:
   client:

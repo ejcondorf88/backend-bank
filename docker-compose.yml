@@ -4,9 +4,33 @@
 version: '3.8'
 
 services:
-  # ==========================================================================
-  # Eureka Server - Service Discovery
-  # ==========================================================================
+# ==========================================================================
+# PostgreSQL Database - Shared with schemas
+# ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: bank-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bankdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
+    networks:
+      - bank-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+# ==========================================================================
+# Eureka Server - Service Discovery
+# ==========================================================================
   eureka-server:
     build:
       context: ./ms-eureka-server
@@ -50,47 +74,66 @@ services:
       - bank-network
     restart: unless-stopped
 
-  # ==========================================================================
-  # Account Microservice
-  # ==========================================================================
+# ==========================================================================
+# Account Microservice
+# ==========================================================================
   ms-account:
     build:
       context: ./ms-account
       dockerfile: Dockerfile
     container_name: ms-account
     ports:
-      - "8081:8080"
+      - "8082:8082"
     environment:
       - SPRING_APPLICATION_NAME=ms-account
-      - SERVER_PORT=8080
+      - SERVER_PORT=8082
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bankdb?currentSchema=account
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DEFAULT_SCHEMA=account
     depends_on:
+      postgres:
+        condition: service_healthy
       eureka-server:
         condition: service_healthy
     networks:
       - bank-network
     restart: unless-stopped
 
-  # ==========================================================================
-  # Customer Microservice
-  # ==========================================================================
+# ==========================================================================
+# Customer Microservice
+# ==========================================================================
   ms-customer:
     build:
       context: ./ms-customer
       dockerfile: Dockerfile
     container_name: ms-customer
     ports:
-      - "8082:8080"
+      - "8081:8081"
     environment:
       - SPRING_APPLICATION_NAME=ms-customer
-      - SERVER_PORT=8080
+      - SERVER_PORT=8081
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bankdb?currentSchema=customer
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DEFAULT_SCHEMA=customer
     depends_on:
+      postgres:
+        condition: service_healthy
       eureka-server:
         condition: service_healthy
     networks:
       - bank-network
     restart: unless-stopped
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data:
+    driver: local
 
 # ============================================================================
 # Networks
