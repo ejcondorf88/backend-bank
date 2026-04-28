@@ -1,14 +1,21 @@
 # ============================================================================
 # Bank Microservices - Docker Compose
 # ============================================================================
-# Este archivo solo levanta RabbitMQ para eventos entre microservicios.
-# Los demas servicios (Eureka, Gateway, ms-customer, ms-account) se ejecutan
-# localmente con Maven.
+# Este archivo levanta todos los servicios en Docker.
+# Los servicios se conectan a PostgreSQL en Railway (externo).
 #
 # USO:
-#   docker-compose up -d          # Levantar RabbitMQ
-#   docker-compose down            # Detener RabbitMQ
-#   docker-compose logs -f rabbitmq  # Ver logs
+#   docker-compose up -d              # Levantar todos los servicios
+#   docker-compose down                 # Detener todos los servicios
+#   docker-compose logs -f [servicio]   # Ver logs de un servicio
+#   docker-compose ps                   # Ver estado de los servicios
+#
+# PRE-REQUISITOS:
+#   1. Crear el schema "customer" en Railway PostgreSQL
+#   2. Las imágenes deben estar construidas:
+#      docker build -t backend-bank/ms-eureka-server:1.0.0 ./ms-eureka-server/
+#      docker build -t backend-bank/ms-gateway:1.0.0 ./ms-gateway/
+#      docker build -t backend-bank/ms-customer:1.0.0 ./ms-customer/
 # ============================================================================
 
 version: '3.8'
@@ -21,24 +28,101 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"      # Puerto AMQP para aplicaciones (Spring AMQP)
-      - "15672:15672"    # Puerto UI de administración (Web)
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-      start_period: 30s
     restart: unless-stopped
+    networks:
+      - bank-network
 
-# ==========================================================================
+  # ==========================================================================
+  # Eureka Server - Service Discovery
+  # ==========================================================================
+  eureka-server:
+    image: backend-bank/ms-eureka-server:1.0.0
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      SPRING_APPLICATION_NAME: ms-eureka-server
+    restart: unless-stopped
+    networks:
+      - bank-network
+
+  # ==========================================================================
+  # API Gateway
+  # ==========================================================================
+  gateway:
+    image: backend-bank/ms-gateway:1.0.0
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_APPLICATION_NAME: ms-gateway
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+    restart: unless-stopped
+    networks:
+      - bank-network
+
+  # ==========================================================================
+  # Customer Microservice
+  # ==========================================================================
+  ms-customer:
+    image: backend-bank/ms-customer:1.0.0
+    container_name: ms-customer
+    ports:
+      - "8081:8081"
+    environment:
+      # Perfil activo
+      SPRING_PROFILES_ACTIVE: railway
+      
+      # Base de datos Railway
+      DATABASE_URL: jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=customer&sslmode=require
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: aJrCigJkyYokNwRvpRggQKpaXkDXbduK
+      DATABASE_SCHEMA: customer
+      
+      # Eureka
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      
+      # RabbitMQ (usando el contenedor local)
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      
+      # App
+      SERVER_PORT: 8081
+      SPRING_APPLICATION_NAME: ms-customer
+    depends_on:
+      - eureka-server
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - bank-network
+
+# ============================================================================
 # Volumes
-# ==========================================================================
+# ============================================================================
 volumes:
   rabbitmq_data:
     driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  bank-network:
+    driver: bridge
+    name: bank-network
