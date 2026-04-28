@@ -1,6 +1,6 @@
 package com.bank.customer.infrastructure.persistence.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @MappedSuperclass
 public abstract class PersonJpaEntity {

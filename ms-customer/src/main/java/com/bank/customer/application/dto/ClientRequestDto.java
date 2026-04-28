@@ -1,15 +1,13 @@
 package com.bank.customer.application.dto;
 
-import javax.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
-/**
- * DTO para recibir datos de creación/actualización de Cliente.
- * Usado en la capa de aplicación para transferir datos desde los controllers.
- * Incluye validaciones Bean Validation.
- *
- * @author Backend Bank Team
- * @version 1.0.0
- */
+
 public class ClientRequestDto {
 
     @NotBlank(message = "Name is required")

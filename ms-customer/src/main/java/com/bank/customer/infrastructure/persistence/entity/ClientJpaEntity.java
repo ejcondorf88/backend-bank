@@ -1,6 +1,6 @@
 package com.bank.customer.infrastructure.persistence.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "clients", schema = "customer")
