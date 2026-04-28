@@ -3,7 +3,7 @@ package com.bank.customer.infrastructure.persistence;
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.repository.ClientRepository;
 import com.bank.customer.infrastructure.persistence.entity.ClientJpaEntity;
-import com.bank.customer.infrastructure.persistence.mapper.ClientMapper;
+import com.bank.customer.infrastructure.persistence.mapper.ClientJpaMapper;
 import com.bank.customer.infrastructure.persistence.repository.ClientJpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,16 +15,16 @@ import java.util.stream.Collectors;
 public class ClientRepositoryImpl implements ClientRepository {
 
     private final ClientJpaRepository jpaRepository;
-    private final ClientMapper mapper;
+    private final ClientJpaMapper mapper;
 
-    public ClientRepositoryImpl(ClientJpaRepository jpaRepository, ClientMapper mapper) {
+    public ClientRepositoryImpl(ClientJpaRepository jpaRepository, ClientJpaMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
     }
 
     @Override
     public Client save(Client client) {
-        ClientJpaEntity jpaEntity = mapper.toJpa(client);
+        ClientJpaEntity jpaEntity = mapper.toJpaEntity(client);
         ClientJpaEntity saved = jpaRepository.save(jpaEntity);
         return mapper.toDomain(saved);
     }
@@ -58,7 +58,7 @@ public class ClientRepositoryImpl implements ClientRepository {
 
     @Override
     public void delete(Client client) {
-        ClientJpaEntity jpaEntity = mapper.toJpa(client);
+        ClientJpaEntity jpaEntity = mapper.toJpaEntity(client);
         jpaRepository.delete(jpaEntity);
     }
 

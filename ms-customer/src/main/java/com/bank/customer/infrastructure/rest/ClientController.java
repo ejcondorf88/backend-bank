@@ -2,7 +2,7 @@ package com.bank.customer.infrastructure.rest;
 
 import com.bank.customer.application.dto.ClientRequestDto;
 import com.bank.customer.application.dto.ClientResponseDto;
-import com.bank.customer.application.mapper.ClientDtoMapper;
+import com.bank.customer.application.mapper.ClientApplicationMapper;
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.service.ClientService;
 import org.springframework.http.HttpStatus;
@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 public class ClientController {
 
     private final ClientService clientService;
-    private final ClientDtoMapper clientDtoMapper;
+    private final ClientApplicationMapper clientDtoMapper;
 
-    public ClientController(ClientService clientService, ClientDtoMapper clientDtoMapper) {
+    public ClientController(ClientService clientService, ClientApplicationMapper clientDtoMapper) {
         this.clientService = clientService;
         this.clientDtoMapper = clientDtoMapper;
     }
