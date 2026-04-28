@@ -56,3 +56,19 @@ springdoc:
     contact:
       name: Bank Development Team
       email: dev@bank.com
+
+rabbitmq:
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+  exchange:
+    customer:
+      name: customer.events
+      type: topic
+      durable: true
+  queue:
+    customer:
+      name: customer.events.queue
+      durable: true
+      routing-key: customer.#

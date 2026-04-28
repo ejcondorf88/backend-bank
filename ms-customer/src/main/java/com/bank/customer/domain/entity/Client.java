@@ -31,12 +31,12 @@ public class Client extends Person {
 
         if (trimmedPassword.length() < PASSWORD_MIN_LENGTH) {
             throw new IllegalArgumentException(
-                "Password must be at least " + PASSWORD_MIN_LENGTH + " characters long");
+                    "Password must be at least " + PASSWORD_MIN_LENGTH + " characters long");
         }
 
         if (trimmedPassword.length() > PASSWORD_MAX_LENGTH) {
             throw new IllegalArgumentException(
-                "Password cannot exceed " + PASSWORD_MAX_LENGTH + " characters");
+                    "Password cannot exceed " + PASSWORD_MAX_LENGTH + " characters");
         }
 
         return trimmedPassword;
@@ -75,7 +75,7 @@ public class Client extends Person {
         if (o == null || getClass() != o.getClass()) return false;
         Client client = (Client) o;
         return getIdentification() != null &&
-               getIdentification().equals(client.getIdentification());
+                getIdentification().equals(client.getIdentification());
     }
 
     @Override
