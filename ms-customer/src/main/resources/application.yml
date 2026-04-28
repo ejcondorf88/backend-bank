@@ -37,3 +37,22 @@ management:
   endpoint:
     health:
       show-details: always
+
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+  info:
+    title: Customer Service API
+    description: API REST para la gestion de clientes del sistema bancario. Permite crear, consultar, actualizar y eliminar clientes, asi como gestionar su estado activo/inactivo.
+    version: 1.0.0
+    contact:
+      name: Bank Development Team
+      email: dev@bank.com

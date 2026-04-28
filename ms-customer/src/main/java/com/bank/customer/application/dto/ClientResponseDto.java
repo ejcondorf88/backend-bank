@@ -1,14 +1,32 @@
 package com.bank.customer.application.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "DTO de respuesta con los datos del cliente")
 public class ClientResponseDto {
 
+    @Schema(description = "ID interno del cliente en la base de datos", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
+
+    @Schema(description = "Nombre completo del cliente", example = "Juan Perez", accessMode = Schema.AccessMode.READ_ONLY)
     private String name;
+
+    @Schema(description = "Genero del cliente", example = "Masculino", accessMode = Schema.AccessMode.READ_ONLY)
     private String gender;
+
+    @Schema(description = "Edad del cliente", example = "30", accessMode = Schema.AccessMode.READ_ONLY)
     private Integer age;
+
+    @Schema(description = "Numero de identificacion del cliente", example = "1234567890", accessMode = Schema.AccessMode.READ_ONLY)
     private String identification;
+
+    @Schema(description = "Direccion del cliente", example = "Av. Principal 123, Ciudad", accessMode = Schema.AccessMode.READ_ONLY)
     private String address;
+
+    @Schema(description = "Numero de telefono del cliente", example = "0987654321", accessMode = Schema.AccessMode.READ_ONLY)
     private String phone;
+
+    @Schema(description = "Estado activo del cliente", example = "true", accessMode = Schema.AccessMode.READ_ONLY)
     private Boolean active;
 
     public ClientResponseDto() {
