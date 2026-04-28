@@ -18,33 +18,97 @@ Karate es un framework de testing de APIs open-source que permite:
 karate-tests/
 ├── pom.xml                                    # Maven configuration
 ├── src/test/java/
-│   ├── karate-config.js                       # Configuración global
+│   ├── karate-config.js                       # Configuracion global + callsingle
 │   └── com/bank/karate/
 │       ├── KarateTestRunner.java             # Runners JUnit5
 │       └── features/
 │           ├── common/
-│           │   └── setup.feature             # Utilidades reutilizables
+│           │   ├── setup.feature             # Utilidades reutilizables
+│           │   ├── setup-once.feature        # Datos compartidos (callonce)
+│           │   ├── init-data.feature         # Datos globales (callsingle)
+│           │   ├── cleanup.feature           # Limpieza de datos
+│           │   └── create-inactive-client.feature
 │           ├── customer/
-│           │   └── client-crud.feature       # Tests CRUD de clientes
+│           │   └── client-crud.feature       # Tests CRUD
+│           ├── examples/
+│           │   └── call-patterns.feature     # Ejemplos de call/callonce
 │           └── e2e/
 │               └── (end-to-end tests)
-└── target/
-    └── karate-reports/                       # Reportes HTML
+└── README.md                                  # Este documento
+```
+
+## Conceptos Clave
+
+### Call vs CallOnce vs CallSingle
+
+| Método | Alcance | Uso |
+|--------|---------|-----|
+| `call` | Cada escenario | Crear datos temporales, ejecutar lógica específica |
+| `callonce` | Una vez por feature | Datos compartidos entre scenarios del mismo feature |
+| `callsingle` | Una vez por suite | Datos globales de toda la ejecución (configurado en karate-config.js) |
+
+#### Ejemplos:
+
+```gherkin
+# CALL - Se ejecuta en cada scenario
+* def tempData = call read('helper.feature')
+
+# CALLONCE - Se ejecuta UNA VEZ por feature
+* def sharedData = callonce read('setup.feature')
+
+# CALLSINGLE - Configurado en karate-config.js, disponible globalmente
+* def globalData = testData  # Variable del callsingle
+```
+
+### Wildcards en Karate
+
+Los wildcards permiten validaciones flexibles sin ser estrictos:
+
+| Wildcard | Significado | Ejemplo |
+|----------|-------------|---------|
+| `##` | Campo opcional (puede ser null o no existir) | `{ name: '#string', gender: '##string' }` |
+| `#ignore` | Ignorar campos adicionales | `{ name: '#string', "#ignore": "##" }` |
+| `#? _` | Validación con expresión | `{ age: '#? _ >= 18' }` |
+| `#[]` | Array vacío o con items | `match response == '#[] { id: "#number" }'` |
+| `contains` | Validación parcial (solo campos especificados) | `match response contains { id: '#number' }` |
+| `each` | Cada item cumple el criterio | `match each response[*] contains { id: '#number' }` |
+
+#### Ejemplos de Wildcards:
+
+```gherkin
+# Campo opcional con ##
+And match response == { id: '#number', name: '#string', email: '##string' }
+
+# Validación con expresión
+And match response.age == '#? _ >= 18 && _ <= 120'
+And match response.name == '#? _.length > 0'
+
+# Array vacío o con items
+And match response == '#[]'  # Cualquier array
+And match response == '#[2]' # Array con exactamente 2 items
+And match response == '#[_ > 0]' # Array no vacío
+
+# Contiene (match parcial)
+And match response contains { id: 123, name: 'Juan' }
+And match response contains { active: true }
+
+# Cada elemento del array
+And match each response contains { id: '#number', active: '#boolean' }
 ```
 
 ## Requisitos
 
 - Java 17+
 - Maven 3.6+
-- Servicios backend corriendo (ms-customer en puerto 8081, o Gateway en 8080)
+- Servicios backend corriendo
 
 ## Configuración
 
 ### Entornos (Environments)
 
-El proyecto soporta múltiples entornos configurados en `karate-config.js`:
+Configurados en `karate-config.js`:
 
-- **local** (default): `localhost:8081`
+- **local** (default): Servicios en localhost
 - **dev**: Entorno de desarrollo
 - **test**: Entorno de pruebas
 
@@ -79,8 +143,8 @@ mvn test -Dtest=KarateTestRunner#runCustomerTests
 # Solo smoke tests
 mvn test -Dtest=KarateTestRunner#runSmokeTests
 
-# Solo tests end-to-end
-mvn test -Dtest=KarateTestRunner#runE2ETests
+# Ejemplos de patterns
+mvn test -Dtest=KarateTestRunner#runAllTests -Dkarate.options="classpath:com/bank/karate/features/examples"
 ```
 
 ### 3. Ejecutar por Tags
@@ -92,8 +156,14 @@ mvn test -Dkarate.options="--tags @create"
 # Tests smoke
 mvn test -Dkarate.options="--tags @smoke"
 
-# Tests de lectura positivos
+# Tests positivos de lectura
 mvn test -Dkarate.options="--tags @read,@positive"
+```
+
+### 4. Ejecutar un Feature Específico
+
+```bash
+mvn test -Dkarate.options="classpath:com/bank/karate/features/examples/call-patterns.feature"
 ```
 
 ## Reportes
@@ -106,130 +176,94 @@ target/karate-reports/
 └── *.html                       # Reporte individual por feature
 ```
 
-Abrir `karate-summary.html` en el navegador para ver los resultados.
+## Ejemplos de Uso Avanzado
 
-## Estructura de un Feature
+### CallOnce para Datos Compartidos
 
 ```gherkin
-Feature: Customer Service - Client CRUD Operations
+Feature: Tests que reusan datos
 
 Background:
-  * call read('classpath:com/bank/karate/features/common/setup.feature')
-  * url customerServiceUrl
+  # Se ejecuta UNA SOLA VEZ para todo el feature
+  * def shared = callonce read('setup.feature')
+  * def sharedId = shared.clientId
 
-@smoke @create @positive
-Scenario: Crear un cliente exitosamente
-  # Generar datos
-  * def testClient = generateTestClient()
+@positive
+Scenario: Usar cliente compartido
+  # sharedId es el mismo para todos los scenarios
+  Given url baseUrl + '/api/clients/' + sharedId
+  When method get
+  Then status 200
+
+@positive
+Scenario: Otro scenario con mismo cliente
+  # Mismo sharedId que el anterior
+  Given url baseUrl + '/api/clients/' + sharedId + '/activate'
+  When method patch
+```
+
+### Wildcards para Validación Flexible
+
+```gherkin
+Scenario: Validacion flexible de respuesta
+  When method get
+  Then status 200
   
-  # Ejecutar request
-  Given request testClient
-  When method post
+  # Schema con campos opcionales
+  And match response == 
+    """
+    {
+      id: '#number',
+      name: '#string',
+      email: '##string',           # Opcional
+      phone: '##string',           # Opcional
+      address: '##string',         # Opcional
+      active: '#boolean'
+    }
+    """
   
-  # Validar respuesta
-  Then status 201
-  And match response == clientSchema
-  And match response.name == testClient.name
-  And match response.active == true
+  # Solo validar ciertos campos
+  And match response contains { id: '#number', name: '#string' }
   
-  # Cleanup
-  * def createdId = response.id
-  Given url customerServiceUrl + '/api/clients/' + createdId
-  When method delete
+  # Validar expresiones
+  And match response.age == '#? _ >= 18'
+  And match response.name == '#? _.length >= 2'
+```
+
+### Call para Crear Datos Temporales
+
+```gherkin
+Scenario: Crear y usar datos temporales
+  # Crear cliente temporal (se ejecuta en cada scenario)
+  * def temp = call read('create-client.feature')
+  
+  # Usar el cliente creado
+  Given url baseUrl + '/api/clients/' + temp.id
+  When method get
+  Then status 200
 ```
 
 ## Tags Disponibles
 
 | Tag | Descripción |
 |-----|-------------|
-| `@smoke` | Tests críticos que deben pasar siempre |
-| `@customer` | Tests del microservicio de clientes |
-| `@crud` | Tests de operaciones CRUD |
-| `@create` | Tests de creación |
-| `@read` | Tests de consulta |
-| `@update` | Tests de actualización |
-| `@delete` | Tests de eliminación |
-| `@activate` | Tests de activación |
-| `@deactivate` | Tests de desactivación |
-| `@positive` | Casos de éxito |
-| `@negative` | Casos de error |
-| `@e2e` | Tests end-to-end |
-| `@ignore` | Tests que se saltan |
-
-## Utilidades Disponibles
-
-### En `setup.feature`:
-
-- `jsonHeaders` - Headers JSON estándar
-- `clientSchema` - Schema de validación de cliente
-- `errorSchema` - Schema de validación de error
-- `generateTestClient()` - Genera datos de cliente aleatorios
-- `extractIdFromResponse(response)` - Extrae ID de respuesta
-- `contains(str, substr)` - Verifica si contiene substring
-
-### Variables de Configuración:
-
-- `customerServiceUrl` - URL base del servicio de clientes
-- `baseUrl` - URL del Gateway (si aplica)
-- `timeout` - Timeout de conexión
-
-## Ejemplo de Flujo Completo
-
-```gherkin
-Feature: Flujo completo de cliente
-
-Scenario: Crear, actualizar y eliminar cliente
-  # Crear
-  * def client = generateTestClient()
-  Given url customerServiceUrl + '/api/clients'
-  And request client
-  When method post
-  Then status 201
-  * def clientId = response.id
-  
-  # Actualizar
-  Given url customerServiceUrl + '/api/clients/' + clientId
-  And request { name: 'Updated', ...client }
-  When method put
-  Then status 200
-  And match response.name == 'Updated'
-  
-  # Desactivar
-  Given url customerServiceUrl + '/api/clients/' + clientId + '/deactivate'
-  When method patch
-  Then status 200
-  
-  # Eliminar
-  Given url customerServiceUrl + '/api/clients/' + clientId
-  When method delete
-  Then status 204
-```
-
-## Integración con CI/CD
-
-```yaml
-# Ejemplo para GitHub Actions
-- name: Run Karate Tests
-  run: |
-    cd karate-tests
-    mvn clean test -Dkarate.env=test
-    
-- name: Upload Reports
-  uses: actions/upload-artifact@v3
-  with:
-    name: karate-reports
-    path: karate-tests/target/karate-reports/
-```
+| `@smoke` | Tests críticos |
+| `@customer` | Tests de ms-customer |
+| `@crud` | Operaciones CRUD |
+| `@create`, `@read`, `@update`, `@delete` | Por operación |
+| `@positive`, `@negative` | Éxito vs error |
+| `@callonce`, `@callsingle` | Demos de patterns |
 
 ## Recursos
 
 - [Documentación oficial de Karate](https://karate.github.io/karate/)
 - [GitHub - Karate Framework](https://github.com/karatelabs/karate)
-- [Cheat Sheet de Karate](https://gist.github.com/ptrthomas/62fe77f1f1cc8d284b9fdc213cf21d68)
+- [Cheat Sheet](https://gist.github.com/ptrthomas/62fe77f1f1cc8d284b9fdc213cf21d68)
 
 ## Tips
 
-1. **Siempre limpiar datos de prueba**: Cada test debe limpiar los recursos creados
-2. **Usar datos aleatorios**: Evitar colisiones entre tests con `generateTestClient()`
-3. **Tags consistentes**: Facilita filtrar y ejecutar subconjuntos
-4. **Schemas reutilizables**: Definir en `setup.feature` para mantener consistencia
+1. **Usa callonce** para setup costoso que se reutiliza
+2. **Usa callsingle** en karate-config.js para datos globales
+3. **Wildcards ##** hacen tests más mantenibles
+4. **contains** en lugar de `==` para validaciones parciales
+5. **Siempre limpia** datos de prueba al final
