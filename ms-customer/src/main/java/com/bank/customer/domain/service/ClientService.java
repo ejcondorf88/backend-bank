@@ -11,7 +11,11 @@ public interface ClientService {
 
     Optional<Client> findById(Long id);
 
+    Client getById(Long id);
+
     Optional<Client> findByIdentification(String identification);
+
+    Client getByIdentification(String identification);
 
     List<Client> findAll();
 

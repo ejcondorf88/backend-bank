@@ -38,8 +38,20 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    public Client getById(Long id) {
+        return clientRepository.findById(id)
+            .orElseThrow(() -> new ClientNotFoundException(id));
+    }
+
+    @Override
     public Optional<Client> findByIdentification(String identification) {
         return clientRepository.findByIdentification(identification);
+    }
+
+    @Override
+    public Client getByIdentification(String identification) {
+        return clientRepository.findByIdentification(identification)
+            .orElseThrow(() -> new ClientNotFoundException(identification));
     }
 
     @Override
@@ -58,6 +70,12 @@ public class ClientServiceImpl implements ClientService {
         if (client.getId() == null || !clientRepository.existsById(client.getId())) {
             throw new ClientNotFoundException(client.getId());
         }
+        // Verificar que la identification no pertenece a OTRO cliente distinto
+        clientRepository.findByIdentification(client.getIdentification())
+            .filter(existing -> !existing.getId().equals(client.getId()))
+            .ifPresent(duplicate -> {
+                throw new ClientAlreadyExistsException(client.getIdentification());
+            });
         return clientRepository.save(client);
     }
 

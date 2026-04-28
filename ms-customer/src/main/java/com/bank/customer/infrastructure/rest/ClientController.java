@@ -35,18 +35,14 @@ public class ClientController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponseDto> getClientById(@PathVariable Long id) {
-        return clientService.findById(id)
-            .map(clientDtoMapper::toResponseDto)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+        Client client = clientService.getById(id);
+        return ResponseEntity.ok(clientDtoMapper.toResponseDto(client));
     }
 
     @GetMapping("/identification/{identification}")
     public ResponseEntity<ClientResponseDto> getClientByIdentification(@PathVariable String identification) {
-        return clientService.findByIdentification(identification)
-            .map(clientDtoMapper::toResponseDto)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+        Client client = clientService.getByIdentification(identification);
+        return ResponseEntity.ok(clientDtoMapper.toResponseDto(client));
     }
 
     @GetMapping

@@ -68,9 +68,6 @@ public class Client extends Person {
         return password;
     }
 
-    protected void setActiveState(boolean active) {
-        this.active = active;
-    }
 
     @Override
     public boolean equals(Object o) {
