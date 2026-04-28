@@ -14,15 +14,11 @@ spring:
         - id: ms-customer
           uri: lb://ms-customer
           predicates:
-            - Path=/api/customers/**
-          filters:
-            - StripPrefix=1
+            - Path=/api/clients/**
         - id: ms-account
           uri: lb://ms-account
           predicates:
             - Path=/api/accounts/**
-          filters:
-            - StripPrefix=1
 
 eureka:
   client:
