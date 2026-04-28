@@ -2,6 +2,7 @@ package com.bank.customer.application.service;
 
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.event.ClientEvent;
+import com.bank.customer.domain.event.ClientEventPayload;
 import com.bank.customer.domain.event.DomainEventPublisher;
 import com.bank.customer.domain.exception.ClientAlreadyExistsException;
 import com.bank.customer.domain.exception.ClientNotFoundException;
@@ -11,9 +12,7 @@ import com.bank.customer.domain.service.ClientService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 
@@ -38,7 +37,7 @@ public class ClientServiceImpl implements ClientService {
         Client savedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        Map<String, Object> payload = createClientPayload(savedClient);
+        ClientEventPayload payload = createClientPayload(savedClient);
         eventPublisher.publish(ClientEvent.clientCreated(
                 savedClient.getId(),
                 savedClient.getIdentification(),
@@ -97,7 +96,7 @@ public class ClientServiceImpl implements ClientService {
         Client updatedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        Map<String, Object> payload = createClientPayload(updatedClient);
+        ClientEventPayload payload = createClientPayload(updatedClient);
         eventPublisher.publish(ClientEvent.clientUpdated(
                 updatedClient.getId(),
                 updatedClient.getIdentification(),
@@ -172,15 +171,15 @@ public class ClientServiceImpl implements ClientService {
     /**
      * Crea un payload con los datos del cliente para los eventos.
      */
-    private Map<String, Object> createClientPayload(Client client) {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("id", client.getId());
-        payload.put("name", client.getName());
-        payload.put("identification", client.getIdentification());
-        payload.put("phone", client.getPhone());
-        payload.put("address", client.getAddress());
-        payload.put("active", client.isActive());
-        return payload;
+    private ClientEventPayload createClientPayload(Client client) {
+        return ClientEventPayload.from(
+                client.getId(),
+                client.getName(),
+                client.getIdentification(),
+                client.getPhone(),
+                client.getAddress(),
+                client.isActive()
+        );
     }
 
 }

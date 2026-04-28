@@ -1,34 +1,65 @@
+# ============================================================================
+# CONFIGURACION POR DEFECTO - DESARROLLO LOCAL
+# ============================================================================
+# Usa PostgreSQL local con Docker
+# Para Railway: SPRING_PROFILES_ACTIVE=railway
+# ============================================================================
+
 server:
   port: 8081
 
 spring:
   application:
     name: ms-customer
+  config:
+    import: optional:file:.env[.properties]
   datasource:
-    url: jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer
+    # PostgreSQL local (Docker)
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
     hikari:
-      schema: customer
+      schema: ${DATABASE_SCHEMA:customer}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: create-drop
-      default_schema: customer
+    default_schema: customer
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        default_schema: customer
+        default_schema: ${DATABASE_SCHEMA:customer}
 
+# Eureka local activo
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    enabled: true
   instance:
     prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
 
+# RabbitMQ local
+rabbitmq:
+  host: ${RABBITMQ_HOST:localhost}
+  port: ${RABBITMQ_PORT:5672}
+  username: ${RABBITMQ_USER:guest}
+  password: ${RABBITMQ_PASSWORD:guest}
+  exchange:
+    customer:
+      name: customer.events
+      type: topic
+      durable: true
+  queue:
+    customer:
+      name: customer.events.queue
+      durable: true
+      routing-key: customer.#
+
+# Management endpoints
 management:
   endpoints:
     web:
@@ -38,6 +69,7 @@ management:
     health:
       show-details: always
 
+# Swagger/OpenAPI
 springdoc:
   api-docs:
     path: /api-docs
@@ -51,24 +83,17 @@ springdoc:
     filter: true
   info:
     title: Customer Service API
-    description: API REST para la gestion de clientes del sistema bancario. Permite crear, consultar, actualizar y eliminar clientes, asi como gestionar su estado activo/inactivo.
-    version: 1.0.0
+    description: API REST para gestion de clientes
+    version: ${APP_VERSION:1.0.0}
     contact:
       name: Bank Development Team
       email: dev@bank.com
 
-rabbitmq:
-  host: localhost
-  port: 5672
-  username: guest
-  password: guest
-  exchange:
-    customer:
-      name: customer.events
-      type: topic
-      durable: true
-  queue:
-    customer:
-      name: customer.events.queue
-      durable: true
-      routing-key: customer.#
+# Logging detallado para desarrollo
+logging:
+  level:
+    com.bank.customer: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

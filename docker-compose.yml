@@ -1,144 +1,44 @@
 # ============================================================================
 # Bank Microservices - Docker Compose
 # ============================================================================
+# Este archivo solo levanta RabbitMQ para eventos entre microservicios.
+# Los demas servicios (Eureka, Gateway, ms-customer, ms-account) se ejecutan
+# localmente con Maven.
+#
+# USO:
+#   docker-compose up -d          # Levantar RabbitMQ
+#   docker-compose down            # Detener RabbitMQ
+#   docker-compose logs -f rabbitmq  # Ver logs
+# ============================================================================
+
 version: '3.8'
 
 services:
-# ==========================================================================
-# PostgreSQL Database - Shared with schemas
-# ==========================================================================
-  postgres:
-    image: postgres:15-alpine
-    container_name: bank-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: bankdb
+  # ==========================================================================
+  # RabbitMQ - Message Broker
+  # ==========================================================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
-      - "5432:5432"
+      - "5672:5672"      # Puerto AMQP para aplicaciones (Spring AMQP)
+      - "15672:15672"    # Puerto UI de administración (Web)
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
-    networks:
-      - bank-network
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-# ==========================================================================
-# Eureka Server - Service Discovery
-# ==========================================================================
-  eureka-server:
-    build:
-      context: ./ms-eureka-server
-      dockerfile: Dockerfile
-    container_name: eureka-server
-    ports:
-      - "8761:8761"
-    environment:
-      - SPRING_APPLICATION_NAME=ms-eureka-server
-      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
-      - EUREKA_CLIENT_FETCH_REGISTRY=false
-      - SERVER_PORT=8761
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    networks:
-      - bank-network
-    restart: unless-stopped
-
-  # ==========================================================================
-  # API Gateway
-  # ==========================================================================
-  gateway:
-    build:
-      context: ./ms-gateway
-      dockerfile: Dockerfile
-    container_name: gateway
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_APPLICATION_NAME=ms-gateway
-      - SERVER_PORT=8080
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-    networks:
-      - bank-network
-    restart: unless-stopped
-
-# ==========================================================================
-# Account Microservice
-# ==========================================================================
-  ms-account:
-    build:
-      context: ./ms-account
-      dockerfile: Dockerfile
-    container_name: ms-account
-    ports:
-      - "8082:8082"
-    environment:
-      - SPRING_APPLICATION_NAME=ms-account
-      - SERVER_PORT=8082
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bankdb?currentSchema=account
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DEFAULT_SCHEMA=account
-    depends_on:
-      postgres:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    networks:
-      - bank-network
-    restart: unless-stopped
-
-# ==========================================================================
-# Customer Microservice
-# ==========================================================================
-  ms-customer:
-    build:
-      context: ./ms-customer
-      dockerfile: Dockerfile
-    container_name: ms-customer
-    ports:
-      - "8081:8081"
-    environment:
-      - SPRING_APPLICATION_NAME=ms-customer
-      - SERVER_PORT=8081
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bankdb?currentSchema=customer
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DEFAULT_SCHEMA=customer
-    depends_on:
-      postgres:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    networks:
-      - bank-network
+      timeout: 30s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
 
 # ==========================================================================
 # Volumes
 # ==========================================================================
 volumes:
-  postgres_data:
+  rabbitmq_data:
     driver: local
-
-# ============================================================================
-# Networks
-# ============================================================================
-networks:
-  bank-network:
-    driver: bridge
-    name: bank-network

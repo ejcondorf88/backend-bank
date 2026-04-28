@@ -1,6 +1,7 @@
 package com.bank.customer.application.service;
 
 import com.bank.customer.domain.entity.Client;
+import com.bank.customer.domain.event.DomainEventPublisher;
 import com.bank.customer.domain.exception.ClientAlreadyExistsException;
 import com.bank.customer.domain.exception.ClientNotFoundException;
 import com.bank.customer.domain.exception.InvalidClientStateException;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Pruebas unitarias de la capa de aplicación - ClientServiceImpl
- * Usa Mockito para simular el repositorio (sin Spring, sin BD)
+ * Usa Mockito para simular el repositorio y el publicador de eventos
  * Solo prueba lógica de aplicación, no infraestructura
  */
 @ExtendWith(MockitoExtension.class)
@@ -32,11 +33,14 @@ class ClientServiceImplTest {
     @Mock
     private ClientRepository clientRepository;
 
+    @Mock
+    private DomainEventPublisher eventPublisher;
+
     private ClientServiceImpl clientService;
 
     @BeforeEach
     void setUp() {
-        clientService = new ClientServiceImpl(clientRepository);
+        clientService = new ClientServiceImpl(clientRepository, eventPublisher);
     }
 
     private Client createTestClient(Long id, String identification, boolean active) {
