@@ -3,7 +3,6 @@ package com.bank.customer.application.dto;
 public class ClientResponseDto {
 
     private Long id;
-    private Long clientId;
     private String name;
     private String gender;
     private Integer age;
@@ -15,11 +14,10 @@ public class ClientResponseDto {
     public ClientResponseDto() {
     }
 
-    public ClientResponseDto(Long id, Long clientId, String name, String gender,
+    public ClientResponseDto(Long id, String name, String gender,
                              Integer age, String identification, String address,
                              String phone, Boolean active) {
         this.id = id;
-        this.clientId = clientId;
         this.name = name;
         this.gender = gender;
         this.age = age;
@@ -31,9 +29,6 @@ public class ClientResponseDto {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
-    public Long getClientId() { return clientId; }
-    public void setClientId(Long clientId) { this.clientId = clientId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -59,11 +54,10 @@ public class ClientResponseDto {
     @Override
     public String toString() {
         return "ClientResponseDto{" +
-               "id=" + id +
-               ", clientId=" + clientId +
-               ", name='" + name + '\'' +
-               ", identification='" + identification + '\'' +
-               ", active=" + active +
-               '}';
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", identification='" + identification + '\'' +
+                ", active=" + active +
+                '}';
     }
 }

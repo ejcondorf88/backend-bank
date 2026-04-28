@@ -59,8 +59,8 @@ public class ClientServiceImpl implements ClientService {
     @Override
     @Transactional
     public Client updateClient(Client client) {
-        if (client.getClientId() == null || !clientRepository.existsById(client.getClientId())) {
-            throw new ClientNotFoundException(client.getClientId());
+        if (client.getId() == null || !clientRepository.existsById(client.getId())) {
+            throw new ClientNotFoundException(client.getId());
         }
         return clientRepository.save(client);
     }

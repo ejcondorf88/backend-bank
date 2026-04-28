@@ -69,8 +69,7 @@ public class ClientController {
     public ResponseEntity<ClientResponseDto> updateClient(
             @PathVariable Long id,
             @Valid @RequestBody ClientRequestDto requestDto) {
-        Client client = clientDtoMapper.toDomain(requestDto);
-        setClientId(client, id);
+        Client client = clientDtoMapper.toDomainForUpdate(id, requestDto);
         Client updatedClient = clientService.updateClient(client);
         ClientResponseDto responseDto = clientDtoMapper.toResponseDto(updatedClient);
         return ResponseEntity.ok(responseDto);
@@ -94,15 +93,5 @@ public class ClientController {
         Client deactivatedClient = clientService.deactivateClient(id);
         ClientResponseDto responseDto = clientDtoMapper.toResponseDto(deactivatedClient);
         return ResponseEntity.ok(responseDto);
-    }
-
-    private void setClientId(Client client, Long id) {
-        try {
-            java.lang.reflect.Field field = Client.class.getDeclaredField("clientId");
-            field.setAccessible(true);
-            field.set(client, id);
-        } catch (Exception e) {
-            throw new RuntimeException("Error setting client id", e);
-        }
     }
 }

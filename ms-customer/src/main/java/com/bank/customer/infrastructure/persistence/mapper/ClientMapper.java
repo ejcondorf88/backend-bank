@@ -23,8 +23,8 @@ public class ClientMapper {
             jpaEntity.isActive()
         );
 
-        setField(client, "id", jpaEntity.getId());
-        setField(client, "clientId", jpaEntity.getClientId());
+        // Usar el método protegido setId heredado de Person
+        client.setId(jpaEntity.getId());
 
         return client;
     }
@@ -42,19 +42,9 @@ public class ClientMapper {
         jpaEntity.setIdentification(domain.getIdentification());
         jpaEntity.setAddress(domain.getAddress());
         jpaEntity.setPhone(domain.getPhone());
-        jpaEntity.setClientId(domain.getClientId());
         jpaEntity.setPassword(domain.getPassword());
         jpaEntity.setActive(domain.isActive());
 
         return jpaEntity;
-    }
-
-    private void setField(Client client, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = Client.class.getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(client, value);
-        } catch (Exception e) {
-        }
     }
 }

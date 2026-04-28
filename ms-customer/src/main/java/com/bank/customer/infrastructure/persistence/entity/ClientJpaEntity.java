@@ -6,17 +6,11 @@ import javax.persistence.*;
 @Table(name = "clients", schema = "customer")
 public class ClientJpaEntity extends PersonJpaEntity {
 
-    @Column(name = "client_id")
-    private Long clientId;
-
     @Column(name = "password", nullable = false, length = 50)
     private String password;
 
     @Column(name = "active", nullable = false)
     private boolean active;
-
-    public Long getClientId() { return clientId; }
-    public void setClientId(Long clientId) { this.clientId = clientId; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

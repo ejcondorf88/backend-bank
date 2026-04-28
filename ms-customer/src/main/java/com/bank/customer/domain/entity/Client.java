@@ -5,7 +5,6 @@ public class Client extends Person {
     private static final int PASSWORD_MIN_LENGTH = 4;
     private static final int PASSWORD_MAX_LENGTH = 50;
 
-    private Long clientId;
     private String password;
     private boolean active;
 
@@ -53,19 +52,11 @@ public class Client extends Person {
         this.password = validatePassword(newPassword);
     }
 
-    public Long getClientId() {
-        return clientId;
-    }
-
     public String getPassword() {
         return password;
     }
 
-    protected void setClientId(Long clientId) {
-        this.clientId = clientId;
-    }
-
-    protected void setPassword(String password) {
+    public void setPassword(String password) {
         this.password = password;
     }
 
@@ -90,10 +81,10 @@ public class Client extends Person {
     @Override
     public String toString() {
         return "Client{" +
-               "clientId=" + clientId +
-               ", name='" + getName() + '\'' +
-               ", identification='" + getIdentification() + '\'' +
-               ", active=" + active +
-               '}';
+                "id=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", identification='" + getIdentification() + '\'' +
+                ", active=" + active +
+                '}';
     }
 }

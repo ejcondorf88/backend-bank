@@ -64,7 +64,7 @@ public class Person {
     public String getAddress() { return address; }
     public String getPhone() { return phone; }
 
-    protected void setId(Long id) { this.id = id; }
+    public void setId(Long id) { this.id = id; }
     protected void setName(String name) { this.name = name; }
     protected void setGender(String gender) { this.gender = gender; }
     protected void setAge(Integer age) { this.age = age; }
