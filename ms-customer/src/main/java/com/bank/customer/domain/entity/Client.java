@@ -1,5 +1,7 @@
 package com.bank.customer.domain.entity;
 
+import com.bank.customer.domain.exception.InvalidClientStateException;
+
 public class Client extends Person {
 
     private static final int PASSWORD_MIN_LENGTH = 4;
@@ -44,20 +46,26 @@ public class Client extends Person {
         return this.active;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    public void activate() {
+        if (this.active) {
+            throw new InvalidClientStateException("Client is already active");
+        }
+        this.active = true;
     }
 
-    public void changePassword(String newPassword) {
-        this.password = validatePassword(newPassword);
+    public void deactivate() {
+        if (!this.active) {
+            throw new InvalidClientStateException("Client is already inactive");
+        }
+        this.active = false;
+    }
+
+    public void setPassword(String password) {
+        this.password = validatePassword(password);
     }
 
     public String getPassword() {
         return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     protected void setActiveState(boolean active) {

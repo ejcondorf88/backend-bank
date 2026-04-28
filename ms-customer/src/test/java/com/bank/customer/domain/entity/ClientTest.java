@@ -1,5 +1,6 @@
 package com.bank.customer.domain.entity;
 
+import com.bank.customer.domain.exception.InvalidClientStateException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -227,8 +228,8 @@ class ClientTest {
     }
 
     @Test
-    @DisplayName("Debe poder cambiar estado a activo")
-    void shouldChangeStateToActive() {
+    @DisplayName("Debe activar cliente inactivo")
+    void shouldActivateInactiveClient() {
         Client client = new Client(
             "Jose Lema",
             "Masculino",
@@ -242,14 +243,14 @@ class ClientTest {
 
         assertFalse(client.isActive());
 
-        client.setActive(true);
+        client.activate();
 
         assertTrue(client.isActive());
     }
 
     @Test
-    @DisplayName("Debe poder cambiar estado a inactivo")
-    void shouldChangeStateToInactive() {
+    @DisplayName("Debe desactivar cliente activo")
+    void shouldDeactivateActiveClient() {
         Client client = new Client(
             "Jose Lema",
             "Masculino",
@@ -263,14 +264,60 @@ class ClientTest {
 
         assertTrue(client.isActive());
 
-        client.setActive(false);
+        client.deactivate();
 
         assertFalse(client.isActive());
     }
 
     @Test
-    @DisplayName("Debe poder cambiar password")
-    void shouldChangePassword() {
+    @DisplayName("Debe lanzar excepcion al activar cliente ya activo")
+    void shouldThrowExceptionWhenActivatingAlreadyActiveClient() {
+        Client client = new Client(
+            "Jose Lema",
+            "Masculino",
+            35,
+            "1720456325",
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            true
+        );
+
+        assertTrue(client.isActive());
+
+        InvalidClientStateException exception = assertThrows(InvalidClientStateException.class, () -> {
+            client.activate();
+        });
+
+        assertEquals("Client is already active", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepcion al desactivar cliente ya inactivo")
+    void shouldThrowExceptionWhenDeactivatingAlreadyInactiveClient() {
+        Client client = new Client(
+            "Jose Lema",
+            "Masculino",
+            35,
+            "1720456325",
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            false
+        );
+
+        assertFalse(client.isActive());
+
+        InvalidClientStateException exception = assertThrows(InvalidClientStateException.class, () -> {
+            client.deactivate();
+        });
+
+        assertEquals("Client is already inactive", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Debe poder cambiar password con setPassword")
+    void shouldChangePasswordWithSetPassword() {
         Client client = new Client(
             "Jose Lema",
             "Masculino",
@@ -284,14 +331,14 @@ class ClientTest {
 
         assertEquals("1234", client.getPassword());
 
-        client.changePassword("nuevaClave123");
+        client.setPassword("nuevaClave123");
 
         assertEquals("nuevaClave123", client.getPassword());
     }
 
     @Test
-    @DisplayName("Debe lanzar excepcion al cambiar password por una invalida")
-    void shouldThrowExceptionWhenChangingToInvalidPassword() {
+    @DisplayName("Debe lanzar excepcion al setear password invalido - muy corto")
+    void shouldThrowExceptionWhenSettingInvalidPasswordTooShort() {
         Client client = new Client(
             "Jose Lema",
             "Masculino",
@@ -304,12 +351,77 @@ class ClientTest {
         );
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            client.changePassword("12");
+            client.setPassword("12");
         });
 
         assertEquals("Password must be at least 4 characters long", exception.getMessage());
         // El password original debe mantenerse
         assertEquals("1234", client.getPassword());
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepcion al setear password nulo")
+    void shouldThrowExceptionWhenSettingNullPassword() {
+        Client client = new Client(
+            "Jose Lema",
+            "Masculino",
+            35,
+            "1720456325",
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            true
+        );
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            client.setPassword(null);
+        });
+
+        assertEquals("Password is required", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepcion al setear password vacio")
+    void shouldThrowExceptionWhenSettingEmptyPassword() {
+        Client client = new Client(
+            "Jose Lema",
+            "Masculino",
+            35,
+            "1720456325",
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            true
+        );
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            client.setPassword("   ");
+        });
+
+        assertEquals("Password is required", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Debe lanzar excepcion al setear password muy largo")
+    void shouldThrowExceptionWhenSettingPasswordTooLong() {
+        Client client = new Client(
+            "Jose Lema",
+            "Masculino",
+            35,
+            "1720456325",
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            true
+        );
+
+        String longPassword = "a".repeat(51);
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            client.setPassword(longPassword);
+        });
+
+        assertEquals("Password cannot exceed 50 characters", exception.getMessage());
     }
 
     @Test

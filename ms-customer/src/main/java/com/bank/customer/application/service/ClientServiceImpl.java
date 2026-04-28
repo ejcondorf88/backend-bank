@@ -12,11 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Implementación de los casos de uso de Cliente.
- * Pertenece a la capa de aplicación.
- * Configurado como readOnly por defecto para operaciones de consulta.
- */
+
 @Service
 @Transactional(readOnly = true)
 public class ClientServiceImpl implements ClientService {
@@ -84,7 +80,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(clientId)
             .orElseThrow(() -> new ClientNotFoundException(clientId));
 
-        client.setActive(true);
+        client.activate();
         return clientRepository.save(client);
     }
 
@@ -94,7 +90,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(clientId)
             .orElseThrow(() -> new ClientNotFoundException(clientId));
 
-        client.setActive(false);
+        client.deactivate();
         return clientRepository.save(client);
     }
 
