@@ -43,14 +43,15 @@ function fn() {
     karate.configure('ssl', true);
   }
 
-  // callSingle: Cargar datos globales UNA SOLA VEZ por ejecucion
-  // Util para tokens, configuraciones, datos base que no cambian
-  var result = karate.callSingle('classpath:com/bank/karate/features/common/init-data.feature', config);
-  config.testData = result;
+    // callSingle: Cargar datos globales UNA SOLA VEZ por ejecucion
+    // Util para tokens, configuraciones, datos base que no cambian
+    var result = karate.callSingle('classpath:com/bank/karate/features/common/init-data.feature', config);
+    config.testData = result;
 
-  // Log de configuracion
-  karate.log('Base URL:', config.baseUrl);
-  karate.log('Customer Service URL:', config.customerServiceUrl);
+    // Log de configuracion
+    karate.log('Base URL:', config.baseUrl);
+    karate.log('Customer Service URL:', config.customerServiceUrl);
+    karate.log('Account Service URL:', config.accountServiceUrl);
 
-  return config;
+    return config;
 }
