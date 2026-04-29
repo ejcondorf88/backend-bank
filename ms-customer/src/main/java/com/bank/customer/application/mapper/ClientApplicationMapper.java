@@ -7,30 +7,37 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 
 /**
  * MapStruct mapper para convertir entre DTOs y Client (dominio).
  * Pertenece a la capa de aplicación.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface ClientApplicationMapper {
 
     /**
      * Convierte un DTO de request a entidad de dominio.
      * Usa un factory method para construir el Client con validaciones.
+     * El defaultValue de MapStruct NO funciona con constructores (solo con setters),
+     * por eso este método es default y maneja el null de active explícitamente.
      */
-    @Mappings({
-        @Mapping(target = "id", ignore = true), // El ID se genera en la base de datos
-        @Mapping(source = "name", target = "name"),
-        @Mapping(source = "gender", target = "gender"),
-        @Mapping(source = "age", target = "age"),
-        @Mapping(source = "identification", target = "identification"),
-        @Mapping(source = "address", target = "address"),
-        @Mapping(source = "phone", target = "phone"),
-        @Mapping(source = "password", target = "password"),
-        @Mapping(source = "active", target = "active", defaultValue = "true")
-    })
-    Client toDomain(ClientRequestDto dto);
+    default Client toDomain(ClientRequestDto dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        return new Client(
+            dto.getName(),
+            dto.getGender(),
+            dto.getAge(),
+            dto.getIdentification(),
+            dto.getAddress(),
+            dto.getPhone(),
+            dto.getPassword(),
+            dto.getActive() != null ? dto.getActive() : true
+        );
+    }
 
     /**
      * Convierte un Client de dominio a DTO de respuesta.

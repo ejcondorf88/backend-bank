@@ -4,7 +4,7 @@ import com.bank.customer.application.dto.ClientRequestDto;
 import com.bank.customer.application.dto.ClientResponseDto;
 import com.bank.customer.application.mapper.ClientApplicationMapper;
 import com.bank.customer.domain.entity.Client;
-import com.bank.customer.domain.service.ClientService;
+import com.bank.customer.domain.port.in.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

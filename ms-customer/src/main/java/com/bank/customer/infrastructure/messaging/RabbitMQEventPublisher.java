@@ -1,7 +1,7 @@
 package com.bank.customer.infrastructure.messaging;
 
 import com.bank.customer.domain.event.DomainEvent;
-import com.bank.customer.domain.event.DomainEventPublisher;
+import com.bank.customer.domain.port.out.DomainEventPublisher;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.bank.customer.domain.service;
+package com.bank.customer.domain.port.in;
 
 import com.bank.customer.domain.entity.Client;
 

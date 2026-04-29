@@ -3,12 +3,12 @@ package com.bank.customer.application.service;
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.event.ClientEvent;
 import com.bank.customer.domain.event.ClientEventPayload;
-import com.bank.customer.domain.event.DomainEventPublisher;
 import com.bank.customer.domain.exception.ClientAlreadyExistsException;
 import com.bank.customer.domain.exception.ClientNotFoundException;
 import com.bank.customer.domain.exception.InvalidClientStateException;
-import com.bank.customer.domain.repository.ClientRepository;
-import com.bank.customer.domain.service.ClientService;
+import com.bank.customer.domain.port.in.ClientService;
+import com.bank.customer.domain.port.out.ClientRepository;
+import com.bank.customer.domain.port.out.DomainEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
