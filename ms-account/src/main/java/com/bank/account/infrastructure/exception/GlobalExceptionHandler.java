@@ -5,6 +5,8 @@ import com.bank.account.domain.exception.AccountNotFoundException;
 import com.bank.account.domain.exception.InsufficientBalanceException;
 import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.exception.InvalidAccountTypeException;
+import com.bank.account.domain.exception.InvalidMovementTypeException;
+import com.bank.account.domain.exception.MovementNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -85,6 +87,34 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InvalidAccountTypeException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidAccountTypeException(InvalidAccountTypeException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("error", "Bad Request");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    /**
+     * Maneja excepciones cuando un movimiento no es encontrado.
+     * HTTP 404 - Not Found
+     */
+    @ExceptionHandler(MovementNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMovementNotFoundException(MovementNotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("error", "Not Found");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Maneja excepciones cuando el tipo de movimiento es inválido.
+     * HTTP 400 - Bad Request
+     */
+    @ExceptionHandler(InvalidMovementTypeException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidMovementTypeException(InvalidMovementTypeException ex) {
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
         error.put("status", HttpStatus.BAD_REQUEST.value());
