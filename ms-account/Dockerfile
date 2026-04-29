@@ -41,5 +41,9 @@ USER appuser
 # Expose port
 EXPOSE 8082
 
+# JVM Memory Settings (can be overridden via JAVA_OPTS env var)
+# Default: 512MB heap for business microservice with database
+ENV JAVA_OPTS="-Xms256m -Xmx512m -Xss1m -XX:MaxMetaspaceSize=128m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
 # Run the application using the Spring Boot launcher
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

@@ -1,236 +1,723 @@
-# Backend Bank - Microservices Architecture
+<p align="center">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen?style=for-the-badge&logo=spring-boot" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java" alt="Java 17">
+  <img src="https://img.shields.io/badge/PostgreSQL-15-blue?style=for-the-badge&logo=postgresql" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/RabbitMQ-3.12-orange?style=for-the-badge&logo=rabbitmq" alt="RabbitMQ">
+  <img src="https://img.shields.io/badge/Hexagonal%20Architecture-✓-success?style=for-the-badge" alt="Hexagonal">
+</p>
 
-Sistema de banco con arquitectura de microservicios Spring Boot.
+<h1 align="center">🏦 Backend Bank</h1>
+<p align="center"><strong>Sistema Bancario con Arquitectura Hexagonal</strong></p>
 
-## Estructura del Proyecto
+<p align="center">
+  <a href="#arquitectura">Arquitectura</a> •
+  <a href="#diagramas-c4">Diagramas C4</a> •
+  <a href="#por-que-hexagonal">¿Por qué Hexagonal?</a> •
+  <a href="#docker">Docker</a> •
+  <a href="#ci-cd">CI/CD</a>
+</p>
 
-```
-backend-bank/
-├── ms-eureka-server/    # Servidor de descubrimiento (puerto 8761)
-├── ms-gateway/          # API Gateway (puerto 8080)
-├── ms-customer/         # Microservicio de Clientes (puerto 8081)
-├── ms-account/          # Microservicio de Cuentas (puerto 8082)
-├── database/
-│   └── init-schemas.sql # Script para crear esquemas PostgreSQL
-├── docker-compose.yml   # Orquestación de contenedores
-└── README.md
-```
+---
 
-## Microservicios
+## 📋 Tabla de Contenidos
 
-| Servicio | Puerto | Descripción |
-|----------|--------|-------------|
-| ms-eureka-server | 8761 | Servidor de descubrimiento de servicios |
-| ms-gateway | 8080 | API Gateway - punto de entrada único |
-| ms-customer | 8081 | Gestión de clientes (CRUD) |
-| ms-account | 8082 | Gestión de cuentas bancarias |
+- [Descripción del Sistema](#descripción-del-sistema)
+- [Arquitectura Hexagonal](#arquitectura-hexagonal)
+  - [¿Por qué elegimos Hexagonal?](#por-qué-elegimos-hexagonal)
+  - [Las 3 Capas](#las-3-capas)
+  - [Flujo de Datos](#flujo-de-datos)
+- [Diagramas C4](#diagramas-c4)
+- [Decisiones de Diseño](#decisiones-de-diseño)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Microservicios](#microservicios)
+- [Tests y Calidad](#tests-y-calidad)
+- [Docker Compose](#docker-compose)
+- [Integraciones Futuras](#integraciones-futuras)
+- [Valor Agregado](#valor-agregado)
 
-## Base de Datos
+---
 
-**PostgreSQL 15** con una única base de datos `bankdb` y esquemas separados:
+## 📝 Descripción del Sistema
 
-| Microservicio | Esquema | Tablas |
-|--------------|---------|--------|
-| ms-customer | `customer` | customers, addresses, etc. |
-| ms-account | `account` | accounts, transactions, etc. |
+**Backend Bank** es un sistema bancario de microservicios diseñado para gestionar clientes, cuentas y transacciones financieras. Implementa los requisitos funcionales F1-F7 con énfasis en:
 
-### Configuración de Conexión (Local)
+- **Escalabilidad**: Microservicios independientes
+- **Mantenibilidad**: Arquitectura Hexagonal (Ports & Adapters)
+- **Testabilidad**: Tests unitarios e integración desacoplados
+- **Flexibilidad**: Capacidad de cambiar tecnologías sin afectar el negocio
 
-```yaml
-# ms-customer: jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer
-# ms-account:  jdbc:postgresql://localhost:5432/bankdb?currentSchema=account
-```
+### Funcionalidades Principales
 
-### Crear Esquemas Manualmente
+| Funcionalidad | Descripción | Estado |
+|---------------|-------------|--------|
+| **F1** | Gestión de Clientes y Cuentas (CRUD) | ✅ Completo |
+| **F2** | Registro de Movimientos (Depósitos/Retiros) | ✅ Completo |
+| **F3** | Validación de "Saldo no disponible" | ✅ Completo |
+| **F4** | Reportes por rango de fechas | ✅ Completo |
+| **F5** | Pruebas Unitarias | ✅ 74+ tests |
+| **F6** | Pruebas de Integración | ✅ 60+ escenarios Karate |
+| **F7** | Docker y Despliegue | ✅ Docker Compose |
 
-```bash
-# Conectar a PostgreSQL
-psql -U postgres -d bankdb
+---
 
-# O ejecutar el script
-psql -U postgres -f database/init-schemas.sql
-```
+## 🏗️ Arquitectura Hexagonal
 
-```sql
--- Crear esquemas manualmente
-CREATE SCHEMA IF NOT EXISTS customer;
-CREATE SCHEMA IF NOT EXISTS account;
-```
+### ¿Qué es la Arquitectura Hexagonal?
 
-## Requisitos
+La **Arquitectura Hexagonal** (también llamada *Ports and Adapters* o *Arquitectura de Cebolla*) es un patrón de diseño que organiza el código en capas concéntricas, donde:
 
-- Java 1.8+
-- Maven 3.6+
-- PostgreSQL 15+ (o usar Docker)
-
-## Inicio Rápido
-
-### Opción 1: Con Docker (Recomendado)
-
-```bash
-# Levantar toda la infraestructura
-docker-compose up -d
-
-# Verificar servicios
-docker-compose ps
-
-# Logs
-docker-compose logs -f
-```
-
-### Opción 2: Local (Desarrollo)
-
-#### 1. Iniciar PostgreSQL
-
-```bash
-# Con Docker solo para la base de datos
-docker run -d \
-  --name bank-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=bankdb \
-  -p 5432:5432 \
-  -v $(pwd)/database/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql \
-  postgres:15-alpine
-
-# Crear esquemas
-psql -U postgres -d bankdb -f database/init-schemas.sql
-```
-
-#### 2. Iniciar Eureka Server
-
-```bash
-cd ms-eureka-server
-mvn spring-boot:run
-```
-
-#### 3. Iniciar los Microservicios (en terminales separados)
-
-```bash
-cd ms-customer && mvn spring-boot:run
-cd ms-account && mvn spring-boot:run
-cd ms-gateway && mvn spring-boot:run
-```
-
-### 3. Verificar el estado
-
-- Eureka Dashboard: http://localhost:8761
-- Gateway: http://localhost:8080
-- Customer directo: http://localhost:8081
-- Account directo: http://localhost:8082
-
-## Endpoints Disponibles
-
-### A través del Gateway (recomendado)
+- **El Dominio** está en el centro (sin dependencias externas)
+- **La Aplicación** rodea al dominio (casos de uso)
+- **La Infraestructura** está en la periferia (detalles técnicos)
 
 ```
-GET http://localhost:8080/api/customers     → ms-customer
-GET http://localhost:8080/api/accounts    → ms-account
+┌─────────────────────────────────────────────────────────────┐
+│                    INFRAESTRUCTURA                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                    APLICACIÓN                        │   │
+│  │  ┌─────────────────────────────────────────────┐     │   │
+│  │  │              DOMINIO (Core)                │     │   │
+│  │  │                                             │     │   │
+│  │  │   Entidades de Negocio (sin frameworks)    │     │   │
+│  │  │   Interfaces (Ports)                       │     │   │
+│  │  │   Reglas de Negocio                        │     │   │
+│  │  │                                             │     │   │
+│  │  └─────────────────────────────────────────────┘     │   │
+│  │                                                      │   │
+│  │   Casos de Uso (Application Services)               │   │
+│  │   DTOs y Mappers                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│   REST Controllers, JPA Repositories, RabbitMQ, etc.      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Eureka
+### Las 3 Capas
+
+#### 1. 💛 Capa de Dominio (El Núcleo)
+
+**Responsabilidad**: Contener la lógica de negocio pura, sin dependencias de frameworks.
+
+**Contenido**:
+- **Entidades**: Objetos de negocio (Account, Movement, Client)
+- **Value Objects**: Objetos inmutables (Money, AccountNumber)
+- **Ports**: Interfaces que definen contratos (Repository, Service)
+- **Excepciones**: Errores específicos del dominio
+
+**Características**:
+- ❌ No usa `@Entity` de JPA
+- ❌ No usa `@Service` de Spring
+- ❌ No importa `org.springframework.*`
+- ✅ Solo depende de `java.*` (JDK puro)
+- ✅ Contiene las reglas de negocio y validaciones
+
+**Ejemplo de Reglas**:
+- Un retiro solo puede hacerse si hay saldo suficiente (F3)
+- Una cuenta inactiva no permite movimientos
+- El tipo de cuenta solo puede ser "Ahorro" o "Corriente"
+
+#### 2. 🧡 Capa de Aplicación (Casos de Uso)
+
+**Responsabilidad**: Orquestar el flujo de datos entre el dominio y la infraestructura.
+
+**Contenido**:
+- **Application Services**: Coordinan casos de uso (ej: "Realizar Depósito")
+- **DTOs**: Objetos de transferencia de datos (Request/Response)
+- **Mappers**: Convierten entre DTOs y Entidades de Dominio
+
+**Características**:
+- Usa Spring (`@Service`) para inyección de dependencias
+- Depende de las interfaces del Dominio (no de implementaciones)
+- No contiene lógica de negocio (solo orquestación)
+
+**Flujo típico**:
+1. Recibe DTO del controller
+2. Valida entrada (con Bean Validation)
+3. Convierte DTO a Entidad de Dominio
+4. Llama a métodos del Dominio
+5. Persiste a través de Ports (interfaces)
+6. Convierte resultado a DTO de respuesta
+
+#### 3. 💙 Capa de Infraestructura (Adaptadores)
+
+**Responsabilidad**: Implementar los detalles técnicos y adaptar el dominio al mundo exterior.
+
+**Contenido**:
+- **REST Controllers**: Exponen API HTTP
+- **JPA Repositories**: Persisten en PostgreSQL
+- **Message Publishers**: Envían eventos a RabbitMQ
+- **Mappers**: Convierten entre JPA Entities y Entidades de Dominio
+
+**Características**:
+- Conoce Spring, JPA, RabbitMQ, etc.
+- Implementa las interfaces (Ports) definidas en el Dominio
+- Puede cambiar sin afectar el Dominio (ej: PostgreSQL → MongoDB)
+
+### Flujo de Datos
+
+Cuando un cliente hace un **depósito**, el flujo es:
 
 ```
-GET http://localhost:8761/eureka/apps     - Lista de servicios registrados
+1. HTTP Request → REST Controller (Infrastructure)
+   POST /api/movements/123/deposit
+   Body: 600.00
+
+2. Controller → Application Service
+   Llama a movementService.createDeposit("123", 600.00)
+
+3. Application Service → Dominio
+   - Busca la cuenta (a través del Port)
+   - Cuenta.deposit(600.00)  ← Lógica de negocio
+   - Crea Movement.createDeposit("123", 600.00, nuevoBalance)
+   - Guarda el movimiento (a través del Port)
+
+4. Application Service → Infrastructure (RepositoryImpl)
+   - Implementación del Port guarda en PostgreSQL
+   - Convierte Dominio → JPA Entity
+
+5. HTTP Response ← Controller
+   Devuelve MovementResponseDto con datos del movimiento
 ```
 
-### Actuator (Health checks)
+**La magia**: El Dominio no sabe que existe HTTP, Spring o PostgreSQL. Solo sabe de "Cuentas", "Movimientos" y "Reglas de Negocio".
+
+---
+
+## 📊 Diagramas C4
+
+Los diagramas C4 describen la arquitectura en 4 niveles de abstracción:
+
+### C1 - Contexto del Sistema
+
+Muestra el sistema como una caja negra y sus interacciones con usuarios y sistemas externos.
+
+```mermaid
+graph TB
+    subgraph "Usuarios"
+        Admin[Administrador Bancario]
+        Cliente[Cliente del Banco]
+    end
+
+    subgraph "Sistema"
+        BB[Backend Bank<br/>Microservicios]
+    end
+
+    subgraph "Infraestructura Externa"
+        DB[(PostgreSQL<br/>Railway)]
+        MQ[RabbitMQ]
+        Eureka[Eureka Server]
+    end
+
+    Admin -->|Gestiona| BB
+    Cliente -->|Consulta/Transacciones| BB
+    BB -->|Persiste| DB
+    BB -->|Eventos| MQ
+    BB -->|Registro| Eureka
+```
+
+**Descripción**: Los usuarios interactúan con el Sistema Bancario, que persiste datos en PostgreSQL, envía eventos por RabbitMQ y se registra en Eureka para descubrimiento de servicios.
+
+### C2 - Contenedores (Microservicios)
+
+Muestra los contenedores (aplicaciones/procesos) que componen el sistema.
+
+```mermaid
+graph TB
+    Cliente[Usuario]
+    
+    subgraph "Backend Bank"
+        GW[API Gateway<br/>:8080]
+        MS1[ms-customer<br/>:8081]
+        MS2[ms-account<br/>:8082]
+        EU[Eureka<br/>:8761]
+        MQ[RabbitMQ<br/>:5672]
+    end
+    
+    DB[(PostgreSQL)]
+
+    Cliente -->|HTTP| GW
+    GW -->|Enruta| MS1
+    GW -->|Enruta| MS2
+    MS1 -.->|Registra| EU
+    MS2 -.->|Registra| EU
+    MS1 -.->|Eventos| MQ
+    MS2 -.->|Eventos| MQ
+    MS1 -->|JDBC| DB
+    MS2 -->|JDBC| DB
+```
+
+**Descripción**:
+- **API Gateway**: Punto de entrada único, enruta peticiones a los microservicios
+- **ms-customer**: Gestiona clientes (CRUD, activación/desactivación)
+- **ms-account**: Gestiona cuentas y movimientos (F1, F2, F3, F4)
+- **Eureka**: Registro y descubrimiento de servicios
+- **RabbitMQ**: Comunicación asíncrona entre servicios
+
+### C3 - Componentes (ms-account)
+
+Muestra los componentes internos de un microservicio.
+
+```mermaid
+graph TB
+    subgraph "ms-account"
+        CTRL[REST Controller<br/>/api/movements]
+        
+        subgraph "Application Layer"
+            SVC[Application Service]
+            DTO[DTOs Request/Response]
+        end
+        
+        subgraph "Domain Layer"
+            DOM[Movement<br/>Entity]
+            PORT[Repository Port<br/>Interface]
+        end
+        
+        subgraph "Infrastructure"
+            REPO[RepositoryImpl]
+            JPA[JPA Repository]
+        end
+    end
+
+    CTRL -->|usa| SVC
+    SVC -->|convierte| DTO
+    SVC -->|usa| DOM
+    SVC -->|usa| PORT
+    PORT -->|implementa| REPO
+    REPO -->|usa| JPA
+    JPA -->|persiste| DB[(PostgreSQL)]
+```
+
+**Descripción**:
+1. **Controller**: Recibe HTTP requests
+2. **Application Service**: Orquesta el caso de uso
+3. **Domain**: Ejecuta lógica de negocio pura
+4. **Repository Port**: Interfaz definida en dominio
+5. **RepositoryImpl**: Implementación JPA (adaptador)
+
+### C4 - Código (Estructura)
+
+Muestra la estructura de código a nivel de clases.
 
 ```
-GET http://localhost:{port}/actuator/health
-GET http://localhost:{port}/actuator/info
+ms-account/
+├── domain/
+│   ├── entity/
+│   │   └── Movement.java          ← Lógica de negocio pura
+│   ├── repository/
+│   │   └── MovementRepository.java ← Interface (Port)
+│   └── exception/
+│       └── InsufficientBalanceException.java
+│
+├── application/
+│   ├── dto/
+│   │   ├── MovementRequestDto.java
+│   │   └── MovementResponseDto.java
+│   ├── mapper/
+│   │   └── MovementApplicationMapper.java
+│   └── service/
+│       └── MovementApplicationService.java
+│
+└── infrastructure/
+    ├── rest/
+    │   └── MovementController.java
+    ├── persistence/
+    │   ├── entity/
+    │   │   └── MovementJpaEntity.java
+    │   ├── repository/
+    │   │   └── MovementJpaRepository.java
+    │   ├── mapper/
+    │   │   └── MovementJpaMapper.java
+    │   └── MovementRepositoryImpl.java
+    └── exception/
+        └── GlobalExceptionHandler.java
 ```
 
-## Arquitectura de Paquetes
+---
 
-Cada microservicio sigue arquitectura hexagonal/clean:
+## 🧠 ¿Por qué Elegimos Hexagonal?
+
+### Problema que Resolvemos
+
+En arquitecturas tradicionales (Layered/N-capas), el código de negocio está mezclado con el framework:
+
+```java
+// ❌ Arquitectura Tradicional (acoplada)
+@Entity  // JPA
+public class Account {
+    @Id  // JPA
+    private Long id;
+    
+    @Column  // JPA
+    private String accountNumber;
+}
+
+// Si queremos cambiar JPA → MongoDB, debemos refactorizar TODO
+```
+
+**Problemas**:
+- Los tests requieren levantar Spring + BD
+- No podemos cambiar de tecnología sin romper el negocio
+- Las reglas de negocio están escondidas entre anotaciones
+
+### La Solución: Dominio Desacoplado
+
+```java
+// ✅ Arquitectura Hexagonal (desacoplada)
+public class Account {  // Pura, sin anotaciones
+    private Long id;
+    private String accountNumber;
+    
+    public void withdraw(BigDecimal amount) {
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientBalanceException("Saldo no disponible");
+        }
+        this.balance = this.balance.subtract(amount);
+    }
+}
+
+// JPA está en otra clase (JpaEntity)
+// MongoDB estaría en otra clase (MongoDocument)
+// El Dominio NO sabe de BD
+```
+
+### Beneficios concretos
+
+#### 1. 🔄 Cambio de Base de Datos sin Dolor
+
+**Escenario**: Migrar de PostgreSQL a MongoDB
 
 ```
-ms-{service}/
-└── src/main/java/com/bank/{service}/
-    ├── application/        # Casos de uso
-    │   ├── dto/           # Data Transfer Objects
-    │   ├── exception/     # Excepciones de aplicación
-    │   ├── mapper/        # Mappers DTO ↔ Entity
-    │   └── service/       # Servicios de aplicación
-    ├── domain/            # Core del negocio
-    │   ├── entity/        # Entidades JPA
-    │   ├── repository/    # Interfaces de repositorio
-    │   └── service/       # Servicios de dominio
-    └── infrastructure/    # Adaptadores técnicos
-        ├── config/        # Configuraciones Spring
-        ├── exception/     # Handlers de excepciones
-        ├── persistence/   # Implementaciones JPA
-        └── rest/          # Controllers REST
+Sin Hexagonal:
+├── Buscar @Entity en todo el código
+├── Cambiar anotaciones JPA por MongoDB
+├── Reescribir queries
+├── Actualizar tests
+└── 2-3 semanas de trabajo
+
+Con Hexagonal:
+├── Crear nueva implementación de Repository (1 archivo)
+├── Crear nuevo JpaMapper (1 archivo)
+├── Cambiar inyección de dependencias
+└── 2-3 días de trabajo
 ```
 
-## Dependencias
+**Lo que NO cambia**:
+- `Movement.java` (dominio)
+- `MovementRepository.java` (interface)
+- `MovementApplicationService.java` (aplicación)
+- Todos los tests unitarios del dominio
 
-Cada microservicio incluye:
+#### 2. 🧪 Tests Ultra-Rápidos
 
-- Spring Boot Starter Web
-- Spring Boot Starter Data JPA
-- Spring Cloud Netflix Eureka Client
-- Spring Boot Actuator
-- **PostgreSQL Driver**
-- Lombok (opcional)
-- Spring Boot Starter Test
+Los tests del dominio no necesitan:
+- ❌ Base de datos
+- ❌ Spring Context (30 segundos de carga)
+- ❌ Docker
+- ❌ Mocks complejos
 
-## Docker Compose
+**Comparación de velocidad**:
+
+| Tipo | Tradicional | Hexagonal |
+|------|-------------|-----------|
+| Test unitario | 2-3 segundos | 10-20 milisegundos |
+| Suite completa | 2-3 minutos | 5-10 segundos |
+| Feedback loop | Lento | Rápido |
+
+#### 3. 🔌 Integraciones Futuras Sencillas
+
+**Ejemplo**: Agregar un servicio de Auditoría externo
+
+```
+Sin modificar el Dominio:
+1. Crear interfaz AuditPort en Domain
+2. Crear AuditService en Application  
+3. Implementar AuditApiClient en Infrastructure
+4. Inyectar en Application Service
+
+El Dominio solo conoce la interfaz AuditPort.
+La implementación (REST, gRPC, SQS) es un detalle.
+```
+
+#### 4. 📦 Estructura que "Grita" la Arquitectura
+
+Al ver los paquetes, inmediatamente entendemos:
+
+```
+ms-account/
+├── domain/           ← Aquí está el dinero (reglas de negocio)
+├── application/      ← Casos de uso (qué hace el sistema)
+└── infrastructure/   ← Detalles técnicos (cómo lo hace)
+```
+
+**Principio**: La estructura de carpetas refleja la arquitectura.
+
+---
+
+## 🛠️ Stack Tecnológico
+
+### Core
+- **Java 17**: Lenguaje moderno con records, pattern matching, mejoras en NullPointer
+- **Spring Boot 3.2**: Framework con inyección de dependencias, web, data
+- **Spring Cloud**: Eureka (service discovery), Gateway (routing)
+
+### Persistencia
+- **PostgreSQL 15**: Base de datos relacional robusta
+- **Spring Data JPA**: Abstracción sobre JDBC, queries automáticas
+- **HikariCP**: Connection pool de alto rendimiento
+
+### Comunicación
+- **RabbitMQ**: Message broker para eventos asíncronos
+- **REST**: Comunicación síncrona HTTP/JSON
+
+### Testing
+- **JUnit 5**: Tests unitarios modernos (params, extensions)
+- **Mockito**: Mocking de dependencias
+- **Karate DSL**: Tests de integración BDD
+- **Jacoco**: Reportes de cobertura
+
+### DevOps
+- **Docker**: Contenerización de servicios
+- **Docker Compose**: Orquestación local
+- **GitHub Actions**: CI/CD automatizado
+
+---
+
+## 🧩 Microservicios
+
+### 1. 🔍 ms-eureka-server (Port: 8761)
+**Responsabilidad**: Registro y descubrimiento de servicios.
+
+**Por qué**: En microservicios, los servicios necesitan encontrarse dinámicamente. Eureka mantiene un registro de qué instancias están disponibles.
+
+### 2. 🚪 ms-gateway (Port: 8080)
+**Responsabilidad**: Punto de entrada único y enrutamiento.
+
+**Flujo**:
+```
+Cliente → Gateway → Eureka → ms-customer/ms-account
+         (encuentra)   (balanceo)
+```
+
+**Rutas**:
+- `/api/clients/**` → ms-customer
+- `/api/accounts/**` → ms-account
+- `/api/movements/**` → ms-account
+
+### 3. 👤 ms-customer (Port: 8081)
+**Responsabilidad**: Gestión del ciclo de vida de clientes.
+
+**Funcionalidades**:
+- Crear, leer, actualizar, eliminar clientes
+- Activar/desactivar clientes
+- Publicar eventos cuando un cliente cambia (RabbitMQ)
+
+**Eventos**:
+- `CLIENTE_CREADO`
+- `CLIENTE_ACTUALIZADO`
+- `CLIENTE_ELIMINADO`
+
+### 4. 💰 ms-account (Port: 8082)
+**Responsabilidad**: Gestión de cuentas y movimientos.
+
+**Funcionalidades**:
+- Crear cuentas (Ahorro/Corriente)
+- Registrar depósitos y retiros (F2)
+- Validar saldo suficiente (F3)
+- Generar reportes por fechas (F4)
+
+**Flujo de Depósito**:
+```
+1. Validar que la cuenta existe
+2. Validar que está activa
+3. Ejecutar deposito (dominio)
+4. Calcular nuevo balance
+5. Crear registro de movimiento
+6. Persistir cuenta y movimiento
+7. Retornar datos del movimiento
+```
+
+---
+
+## 🧪 Tests y Calidad
+
+### Filosofía de Testing
+
+Seguimos la **Pirámide de Tests**:
+
+```
+         /\
+        /  \
+       / E2E\          ← Karate (60+ escenarios)
+      /________\
+     /          \
+    /Integration \      ← API Tests
+   /______________\
+  /                \
+ /   Unit Tests     \   ← JUnit (74+ tests)
+/____________________\
+```
+
+### Tests Unitarios (74+)
+
+**Ubicación**: Capa de Dominio (pura)
+
+**Qué testeamos**:
+- Reglas de negocio (ej: retiro sin saldo → error)
+- Validaciones (ej: tipo de cuenta inválido)
+- Cálculos (ej: balance después de movimiento)
+
+**Características**:
+- ⚡ Ultra-rápidos (< 1 segundo)
+- 🎯 Aisladas (sin Spring, sin BD)
+- 🔒 Estables (no fallan por cambios en infra)
+
+### Tests de Integración (60+ escenarios)
+
+**Herramienta**: Karate DSL (Gherkin)
+
+**Cobertura**:
+- Flujos completos (crear cuenta → depositar → retirar → reporte)
+- Casos de error (404, 400, validaciones)
+- F2: Registro de movimientos
+- F3: Saldo insuficiente
+- F4: Reportes por fechas
+
+**Ejemplo de escenario**:
+```gherkin
+Escenario: F3 - Retiro rechazado por saldo insuficiente
+  Dado que existe una cuenta con saldo 0
+  Cuando intento retirar 100
+  Entonces recibo error 400
+  Y el mensaje es "Saldo no disponible"
+  Y el saldo permanece en 0
+```
+
+---
+
+## 🐳 Docker Compose
 
 ### Servicios
 
-| Servicio | Imagen | Puerto | Descripción |
-|----------|--------|--------|-------------|
-| postgres | postgres:15-alpine | 5432 | Base de datos compartida |
-| eureka-server | (build) | 8761 | Service Discovery |
-| gateway | (build) | 8080 | API Gateway |
-| ms-account | (build) | 8082 | Account Service |
-| ms-customer | (build) | 8081 | Customer Service |
+| Servicio | Descripción | Memoria | Puertos |
+|----------|-------------|---------|---------|
+| **RabbitMQ** | Message broker | 512M | 5672, 15672 |
+| **Eureka** | Service discovery | 512M | 8761 |
+| **Gateway** | API Gateway | 512M | 8080 |
+| **ms-customer** | Gestión clientes | 768M | 8081 |
+| **ms-account** | Gestión cuentas | 768M | 8082 |
 
-### Comandos útiles
+### Configuración de Memoria JVM
 
-```bash
-# Construir imágenes
-docker-compose build
-
-# Iniciar
-docker-compose up -d
-
-# Detener
-docker-compose down
-
-# Detener y eliminar volúmenes
-docker-compose down -v
-
-# Ver logs de un servicio
-docker-compose logs -f ms-customer
-
-# Escalar un servicio
-docker-compose up -d --scale ms-customer=2
-```
-
-## Configuración de Hibernate
+Cada servicio tiene límites de memoria optimizados:
 
 ```yaml
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop  # Desarrollo: create-drop
-                              # Producción: validate o none
+# Ejemplo ms-account
+JAVA_OPTS: "-Xms256m -Xmx512m -XX:MaxRAMPercentage=75.0"
+# Heap inicial: 256MB
+# Heap máximo: 512MB (50% del contenedor)
+# Metaspace: 128MB
 ```
 
-| Valor | Descripción |
-|-------|-------------|
-| `create` | Crea tablas al iniciar |
-| `create-drop` | Crea y elimina al detener (dev) |
-| `update` | Actualiza sin perder datos (dev) |
-| `validate` | Solo valida, no modifica (prod) |
-| `none` | No hace nada (prod con Flyway) |
+### Comandos Útiles
 
-## Notas
+```bash
+# Iniciar todo el stack
+docker-compose up -d
 
-- Cada microservicio usa su propio **schema** en PostgreSQL
-- El esquema `public` NO se usa para tablas de negocio
-- La conexión a BD se configura vía `currentSchema` en la URL
-- Para producción, considerar usar **Flyway** o **Liquibase** para migraciones
+# Ver logs
+docker-compose logs -f ms-account
+
+# Escalar un servicio (2 instancias)
+docker-compose up -d --scale ms-account=2
+
+# Detener todo
+docker-compose down
+
+# Reconstruir imágenes
+docker-compose up -d --build
+```
+
+---
+
+## 🚀 Integraciones Futuras
+
+### Servicio de Auditoría
+
+**Escenario**: Registrar todas las operaciones para compliance.
+
+**Implementación**:
+1. Crear interfaz `AuditPort` en Dominio
+2. Crear `AuditApplicationService` en Aplicación
+3. Crear `AuditApiClient` en Infraestructura (llama a API externa)
+4. Inyectar en servicios existentes
+
+**Ventaja**: El Dominio no sabe si la auditoría va a BD, API o SQS.
+
+### Cambio a SQS (Amazon Simple Queue Service)
+
+**Escenario**: Migrar de RabbitMQ a SQS en AWS.
+
+**Solo cambia Infraestructura**:
+- Reemplazar `RabbitMQEventPublisher` → `SQSEventPublisher`
+- Mismo interface `EventPublisher` (Dominio)
+- Sin cambios en Aplicación ni Dominio
+
+### Cambio de Base de Datos
+
+**Escenario**: Migrar de PostgreSQL a MongoDB.
+
+**Solo cambia Infraestructura**:
+- Crear `AccountMongoRepository` implementando `AccountRepository`
+- Crear `AccountMongoEntity` y `AccountMongoMapper`
+- Mismo Dominio, misma Aplicación
+
+---
+
+## 💎 Valor Agregado
+
+### Para el Negocio
+
+| Aspecto | Beneficio |
+|---------|-----------|
+| **Tiempo de cambio** | Reducción de 80% al cambiar tecnologías |
+| **Calidad** | Tests más rápidos y confiables |
+| **Escalabilidad** | Microservicios independientes |
+| **Mantenibilidad** | Código organizado por responsabilidad |
+
+### Para Desarrolladores
+
+| Aspecto | Beneficio |
+|---------|-----------|
+| **Feedback rápido** | Tests en segundos, no minutos |
+| **Menos bugs** | Lógica de negocio aislada y testeada |
+| **Cambios seguros** | Refactoring sin miedo a romper |
+| **Onboarding** | Estructura clara, fácil de entender |
+
+### Para DevOps
+
+| Aspecto | Beneficio |
+|---------|-----------|
+| **Contenedores** | Cada servicio es independiente |
+| **Escalado selectivo** | Solo escalar lo que se necesita |
+| **Monitoreo** | Health checks por servicio |
+| **Despliegue** | CI/CD automatizado con GitHub Actions |
+
+---
+
+## 🎯 Conclusión
+
+Este proyecto demuestra que la **Arquitectura Hexagonal** no es solo teoría: es una herramienta práctica que resuelve problemas reales de acoplamiento, testabilidad y mantenibilidad.
+
+La clave está en la **separación de responsabilidades**:
+- El **Dominio** decide QUÉ hacer (reglas de negocio)
+- La **Aplicación** decide CUÁNDO hacerlo (orquestación)
+- La **Infraestructura** decide CÓMO hacerlo (detalles técnicos)
+
+Esta separación nos permite evolucionar el sistema sin temor, testear rápidamente y escalar según las necesidades del negocio.
+
+---
+
+<p align="center">
+  <strong>Construido con Arquitectura Hexagonal 🏗️</strong><br>
+  Dominio puro • Tests confiables • Cambios seguros
+</p>

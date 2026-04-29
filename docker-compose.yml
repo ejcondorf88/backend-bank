@@ -5,17 +5,33 @@
 # Los servicios se conectan a PostgreSQL en Railway (externo).
 #
 # USO:
-#   docker-compose up -d              # Levantar todos los servicios
-#   docker-compose down                 # Detener todos los servicios
-#   docker-compose logs -f [servicio]   # Ver logs de un servicio
-#   docker-compose ps                   # Ver estado de los servicios
+# docker-compose up -d # Levantar todos los servicios
+# docker-compose down # Detener todos los servicios
+# docker-compose logs -f [servicio] # Ver logs de un servicio
+# docker-compose ps # Ver estado de los servicios
+#
+# CONFIGURACION DE MEMORIA:
+# Cada servicio tiene limites de memoria configurados en DOS niveles:
+# 1. Contenedor (deploy.resources.limits.memory) - Limite duro de Docker
+# 2. JVM (JAVA_OPTS) - Limite de memoria Heap de Java
+#
+# Regla: memoria_contenedor > memoria_JVM_heap + overhead (~200-300MB)
+#
+# Servicio | Contenedor | JVM Heap | Stack | Metaspace
+# ---------|------------|----------|--------|----------
+# RabbitMQ | 512M       | N/A      | N/A    | N/A
+# Eureka   | 512M       | 256M     | 1M     | 128M
+# Gateway  | 512M       | 256M     | 1M     | 128M
+# Customer | 768M       | 512M     | 1M     | 128M
+# Account  | 768M       | 512M     | 1M     | 128M
 #
 # PRE-REQUISITOS:
-#   1. Crear el schema "customer" en Railway PostgreSQL
-#   2. Las imágenes deben estar construidas:
-#      docker build -t backend-bank/ms-eureka-server:1.0.0 ./ms-eureka-server/
-#      docker build -t backend-bank/ms-gateway:1.0.0 ./ms-gateway/
-#      docker build -t backend-bank/ms-customer:1.0.0 ./ms-customer/
+# 1. Crear los schemas "customer" y "account" en Railway PostgreSQL
+# 2. Las imágenes deben estar construidas:
+# docker build -t backend-bank/ms-eureka-server:1.0.0 ./ms-eureka-server/
+# docker build -t backend-bank/ms-gateway:1.0.0 ./ms-gateway/
+# docker build -t backend-bank/ms-customer:1.0.0 ./ms-customer/
+# docker build -t backend-bank/ms-account:1.0.0 ./ms-account/
 # ============================================================================
 
 version: '3.8'
@@ -35,6 +51,14 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     restart: unless-stopped
     networks:
       - bank-network
@@ -52,6 +76,16 @@ services:
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
       SPRING_APPLICATION_NAME: ms-eureka-server
+      # JVM Memory: Using Dockerfile defaults (256MB heap)
+      # Override with: JAVA_OPTS="-Xms... -Xmx..." if needed
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     restart: unless-stopped
     networks:
       - bank-network
@@ -68,6 +102,16 @@ services:
       SERVER_PORT: 8080
       SPRING_APPLICATION_NAME: ms-gateway
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      # JVM Memory: Using Dockerfile defaults (256MB heap)
+      # Override with: JAVA_OPTS="-Xms... -Xmx..." if needed
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 384M
+          cpus: '0.3'
     depends_on:
       - eureka-server
     restart: unless-stopped
@@ -85,26 +129,86 @@ services:
     environment:
       # Perfil activo
       SPRING_PROFILES_ACTIVE: railway
-      
+
       # Base de datos Railway
       DATABASE_URL: jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=customer&sslmode=require
       DATABASE_USER: postgres
       DATABASE_PASSWORD: aJrCigJkyYokNwRvpRggQKpaXkDXbduK
       DATABASE_SCHEMA: customer
-      
+
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
-      
+
       # RabbitMQ (usando el contenedor local)
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: guest
       RABBITMQ_PASSWORD: guest
-      
+
       # App
       SERVER_PORT: 8081
       SPRING_APPLICATION_NAME: ms-customer
+
+      # JVM Memory: Using Dockerfile defaults (512MB heap)
+      # Override with: JAVA_OPTS="-Xms... -Xmx..." if needed
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.8'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    depends_on:
+      - eureka-server
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - bank-network
+
+  # ==========================================================================
+  # Account Microservice
+  # ==========================================================================
+  ms-account:
+    image: backend-bank/ms-account:1.0.0
+    container_name: ms-account
+    ports:
+      - "8082:8082"
+    environment:
+      # Perfil activo
+      SPRING_PROFILES_ACTIVE: railway
+
+      # Base de datos Railway
+      DATABASE_URL: jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=account&sslmode=require
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: aJrCigJkyYokNwRvpRggQKpaXkDXbduK
+      DATABASE_SCHEMA: account
+
+      # Eureka
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+
+      # RabbitMQ (usando el contenedor local)
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+
+      # App
+      SERVER_PORT: 8082
+      SPRING_APPLICATION_NAME: ms-account
+
+      # JVM Memory: Using Dockerfile defaults (512MB heap)
+      # Override with: JAVA_OPTS="-Xms... -Xmx..." if needed
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.8'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
     depends_on:
       - eureka-server
       - rabbitmq

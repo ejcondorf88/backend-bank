@@ -34,4 +34,8 @@ USER appuser
 
 EXPOSE 8081
 
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+# JVM Memory Settings (can be overridden via JAVA_OPTS env var)
+# Default: 512MB heap for business microservice with database
+ENV JAVA_OPTS="-Xms256m -Xmx512m -Xss1m -XX:MaxMetaspaceSize=128m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
