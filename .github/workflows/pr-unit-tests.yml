@@ -1,0 +1,151 @@
+# ============================================================================
+# GitHub Actions Workflow: PR Unit Tests
+# ============================================================================
+# Este workflow se ejecuta automáticamente cuando se crea un Pull Request
+# desde una rama feature/** hacia develop.
+#
+# Ejecuta los tests unitarios de los microservicios:
+# - ms-customer
+# - ms-account
+#
+# Si los tests fallan, el PR se bloquea y no se puede hacer merge.
+# ============================================================================
+
+name: PR Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'ms-customer/**'
+      - 'ms-account/**'
+      - '.github/workflows/**'
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  # ==========================================================================
+  # Job: Detect Changed Microservices
+  # ==========================================================================
+  detect-changes:
+    name: Detect Changed Microservices
+    runs-on: ubuntu-latest
+    outputs:
+      ms-customer-changed: ${{ steps.changes.outputs.ms-customer }}
+      ms-account-changed: ${{ steps.changes.outputs.ms-account }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            ms-customer:
+              - 'ms-customer/**'
+            ms-account:
+              - 'ms-account/**'
+
+  # ==========================================================================
+  # Job: Test ms-customer
+  # ==========================================================================
+  test-ms-customer:
+    name: Test ms-customer
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.ms-customer-changed == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run unit tests for ms-customer
+        working-directory: ./ms-customer
+        run: mvn clean test --batch-mode
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-ms-customer
+          path: |
+            ms-customer/target/surefire-reports/
+            ms-customer/target/site/jacoco/
+
+  # ==========================================================================
+  # Job: Test ms-account
+  # ==========================================================================
+  test-ms-account:
+    name: Test ms-account
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.ms-account-changed == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run unit tests for ms-account
+        working-directory: ./ms-account
+        run: mvn clean test --batch-mode
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-ms-account
+          path: |
+            ms-account/target/surefire-reports/
+            ms-account/target/site/jacoco/
+
+  # ==========================================================================
+  # Job: Summary
+  # ==========================================================================
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test-ms-customer, test-ms-account]
+    if: always()
+
+    steps:
+      - name: Report status
+        run: |
+          echo "=========================================="
+          echo "Test Execution Summary"
+          echo "=========================================="
+          echo "ms-customer changed: ${{ needs.detect-changes.outputs.ms-customer-changed }}"
+          echo "ms-account changed: ${{ needs.detect-changes.outputs.ms-account-changed }}"
+          echo ""
+          echo "Test Results:"
+          echo "- ms-customer: ${{ needs.test-ms-customer.result || 'skipped' }}"
+          echo "- ms-account: ${{ needs.test-ms-account.result || 'skipped' }}"
+          echo "=========================================="
+
+      - name: Check if all tests passed
+        if: ${{ needs.test-ms-customer.result == 'failure' || needs.test-ms-account.result == 'failure' }}
+        run: |
+          echo "❌ Tests failed! PR cannot be merged."
+          exit 1
+
+      - name: Success message
+        run: |
+          echo "✅ All tests passed! PR is ready for merge."

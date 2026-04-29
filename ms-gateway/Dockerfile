@@ -34,4 +34,8 @@ USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+# JVM Memory Settings (can be overridden via JAVA_OPTS env var)
+# Default: 256MB heap for API Gateway
+ENV JAVA_OPTS="-Xms128m -Xmx256m -Xss1m -XX:MaxMetaspaceSize=128m -XX:+UseContainerSupport"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
