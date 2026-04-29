@@ -6,16 +6,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * Implementación del servicio de dominio para manejar eventos de cliente.
- * Orquesta la respuesta a eventos recibidos desde ms-customer.
+ * Orquesta la respuesta a eventos recibidos desde ms-customer via RabbitMQ.
  *
  * <p>Responsabilidades:
  * <ul>
- * <li>Recibir eventos desde infraestructura</li>
- * <li>Actualizar estado local basado en eventos externos</li>
- * <li>Validar clientId antes de crear cuentas</li>
- * <li>Cachear información de clientes si es necesario</li>
+ *   <li>Recibir eventos desde infraestructura</li>
+ *   <li>Mantener proyección local de nombres de clientes (para F4 — reportes)</li>
+ *   <li>Actualizar estado local basado en eventos externos</li>
  * </ul>
  *
  * <p>Arquitectura: Application Service que implementa un Domain Port.</p>
@@ -26,84 +27,87 @@ public class ClientEventHandlerImpl implements ClientEventHandler {
     private static final Logger log = LoggerFactory.getLogger(ClientEventHandlerImpl.class);
 
     /**
+     * Proyección local: clientId → nombre del cliente.
+     * Bean ConcurrentHashMap inyectado desde RabbitMQConfig.
+     * Compartido con ReportApplicationService para resolver nombres en reportes F4.
+     *
+     * <p>En producción esto sería Redis o una tabla local de proyección SQL.
+     */
+    private final Map<Long, String> clientNameCache;
+
+    public ClientEventHandlerImpl(Map<Long, String> clientNameCache) {
+        this.clientNameCache = clientNameCache;
+    }
+
+    /**
      * Procesa CLIENT_CREATED.
-     * Registra que existe un nuevo cliente válido.
+     * Almacena nombre en proyección local — disponible para reportes F4.
      */
     @Override
     public void handleClientCreated(ClientEvent event) {
-        log.info("Cliente creado recibido: id={}, name={}, identification={}",
+        log.info("Evento CLIENT_CREATED: id={}, name={}, identification={}",
                 event.clientId(), event.name(), event.identification());
 
-        // Validar que el cliente tenga datos válidos
         if (event.clientId() == null || event.clientId() <= 0) {
             log.error("Evento CLIENT_CREATED con clientId inválido: {}", event.clientId());
             return;
         }
 
-        // El cliente ahora puede tener cuentas
-        // Podríamos cachear los datos del cliente en Redis/memoria
-        // o simplemente validar que existe antes de crear cuentas
-
-        log.info("Cliente {} ahora puede tener cuentas", event.clientId());
+        clientNameCache.put(event.clientId(), event.name());
+        log.info("Proyección local actualizada: cliente {} → '{}'", event.clientId(), event.name());
     }
 
     /**
      * Procesa CLIENT_UPDATED.
-     * Actualiza información del cliente local.
+     * Actualiza nombre en proyección local.
      */
     @Override
     public void handleClientUpdated(ClientEvent event) {
-        log.info("Cliente actualizado recibido: id={}, name={}",
-                event.clientId(), event.name());
+        log.info("Evento CLIENT_UPDATED: id={}, name={}", event.clientId(), event.name());
 
-        // Actualizar cache si existe
-        // Invalidar cache de cliente
-        // Actualizar cuentas relacionadas si es necesario
+        if (event.clientId() != null && event.name() != null) {
+            clientNameCache.put(event.clientId(), event.name());
+            log.info("Proyección local actualizada: cliente {} → '{}'", event.clientId(), event.name());
+        }
     }
 
     /**
      * Procesa CLIENT_DELETED.
-     * Marca al cliente como eliminado y posiblemente sus cuentas.
+     * Elimina cliente de la proyección local.
      */
     @Override
     public void handleClientDeleted(ClientEvent event) {
-        log.info("Cliente eliminado recibido: id={}", event.clientId());
+        log.info("Evento CLIENT_DELETED: id={}", event.clientId());
 
-        // Opcional: Desactivar todas las cuentas del cliente
-        // Opcional: Enviar alertas
-        // Invalidar cache
-
-        log.warn("Cliente {} ha sido eliminado del sistema", event.clientId());
+        clientNameCache.remove(event.clientId());
+        log.warn("Cliente {} eliminado de la proyección local", event.clientId());
     }
 
     /**
      * Procesa CLIENT_ACTIVATED.
-     * Reactiva la capacidad de operar.
+     * Mantiene/restaura cliente en la proyección local.
      */
     @Override
     public void handleClientActivated(ClientEvent event) {
-        log.info("Cliente activado recibido: id={}, name={}",
-                event.clientId(), event.name());
+        log.info("Evento CLIENT_ACTIVATED: id={}, name={}", event.clientId(), event.name());
 
-        // Actualizar estado en cache
-        // Permitir operaciones en cuentas existentes
-
-        log.info("Cliente {} está activo y puede operar", event.clientId());
+        if (event.clientId() != null && event.name() != null) {
+            clientNameCache.put(event.clientId(), event.name());
+        }
+        log.info("Cliente {} activado — operaciones habilitadas", event.clientId());
     }
 
     /**
      * Procesa CLIENT_DEACTIVATED.
-     * Bloquea operaciones nuevas en cuentas del cliente.
+     * Mantiene al cliente en cache (existe, solo inactivo).
      */
     @Override
     public void handleClientDeactivated(ClientEvent event) {
-        log.info("Cliente desactivado recibido: id={}, name={}",
-                event.clientId(), event.name());
+        log.info("Evento CLIENT_DEACTIVATED: id={}, name={}", event.clientId(), event.name());
 
-        // Bloquear creación de nuevas cuentas
-        // Opcional: Bloquear operaciones en cuentas existentes
-        // Actualizar cache
-
-        log.warn("Cliente {} está inactivo - no se pueden crear nuevas cuentas", event.clientId());
+        if (event.clientId() != null && event.name() != null) {
+            clientNameCache.put(event.clientId(), event.name());
+        }
+        log.warn("Cliente {} desactivado — no se pueden crear nuevas cuentas", event.clientId());
     }
 }

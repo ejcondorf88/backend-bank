@@ -4,91 +4,54 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
- * Configuración de RabbitMQ para el microservicio de cuentas.
- * Define la conexión, conversión de mensajes y listener containers.
+ * Configuración de RabbitMQ para ms-account.
  *
- * <p>Como consumers, necesitamos:
- * <ul>
- * <li>Conexión a RabbitMQ</li>
- * <li>Queue para escuchar eventos de clientes</li>
- * <li>Binding al exchange de customer</li>
- * <li>Jackson converter para deserializar JSON</li>
- * <li>Listener container factory</li>
- * </ul>
+ * <p>Este microservicio actúa como CONSUMIDOR de eventos publicados por ms-customer.
+ * Escucha la queue 'customer.events.queue' para recibir eventos de Cliente.
  *
- * <p>Nota: El exchange y queue son definidos por ms-customer.
- * Nosotros solo nos conectamos a ellos.</p>
+ * <p>También provee el bean clientNameCache (ConcurrentHashMap) compartido
+ * entre RabbitMQConsumer, ClientEventHandlerImpl y ReportApplicationService
+ * para mantener una proyección local de nombres de clientes.
  */
 @Configuration
 public class RabbitMQConfig {
 
-    @Value("${rabbitmq.host:localhost}")
-    private String host;
-
-    @Value("${rabbitmq.port:5672}")
-    private int port;
-
-    @Value("${rabbitmq.username:guest}")
-    private String username;
-
-    @Value("${rabbitmq.password:guest}")
-    private String password;
-
-    @Value("${rabbitmq.exchange.customer.name:customer.events}")
-    private String customerExchangeName;
-
     @Value("${rabbitmq.queue.customer.name:customer.events.queue}")
     private String customerQueueName;
 
-    @Value("${rabbitmq.queue.customer.routing-key:customer.#}")
-    private String routingKey;
+    @Value("${rabbitmq.exchange.customer.name:customer.exchange}")
+    private String customerExchangeName;
+
+    // ==================== Shared Client Name Cache ====================
 
     /**
-     * Declaración del exchange de customer.
-     * Como es durable, se crea si no existe.
+     * Proyección local de nombres de clientes.
+     * Se actualiza en tiempo real cuando ms-customer publica eventos via RabbitMQ.
+     * Compartido por: ClientEventHandlerImpl, ReportApplicationService.
+     *
+     * <p>En producción, esto sería Redis o una tabla local de proyección.
      */
     @Bean
-    public TopicExchange customerExchange() {
-        return ExchangeBuilder
-                .topicExchange(customerExchangeName)
-                .durable(true)
-                .build();
+    public Map<Long, String> clientNameCache() {
+        return new ConcurrentHashMap<>();
     }
 
-    /**
-     * Declaración de la queue de customer.
-     * Necesitamos declararla para poder consumir de ella.
-     */
-    @Bean
-    public Queue customerQueue() {
-        return QueueBuilder
-                .durable(customerQueueName)
-                .build();
-    }
+    // ==================== Message Converter ====================
 
     /**
-     * Binding entre la queue y el exchange.
-     * Escucha todos los mensajes que empiecen con "customer."
-     */
-    @Bean
-    public Binding customerBinding(Queue customerQueue, TopicExchange customerExchange) {
-        return BindingBuilder
-                .bind(customerQueue)
-                .to(customerExchange)
-                .with(routingKey);
-    }
-
-    /**
-     * Message converter para deserializar JSON a objetos.
-     * Usa Jackson para convertir JSON → ClientEvent.
+     * Converter JSON para deserializar mensajes de RabbitMQ.
+     * Usado para convertir el payload a ClientEvent.
      */
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -96,37 +59,59 @@ public class RabbitMQConfig {
     }
 
     /**
-     * RabbitTemplate configurado con el JSON converter.
-     * Aunque somos consumers, el template puede ser útil para
-     * enviar mensajes de confirmación si es necesario.
+     * RabbitTemplate configurado con JSON converter.
      */
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                        MessageConverter messageConverter) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(messageConverter);
+        template.setMessageConverter(jsonMessageConverter());
         return template;
     }
 
     /**
-     * Factory para los listeners de RabbitMQ.
-     * Configura el deserializador JSON para los mensajes entrantes.
+     * Container factory para @RabbitListener.
+     * Configura el Jackson converter para que deserialice ClientEvent desde JSON.
+     * Requerido explícitamente para que el @RabbitListener en RabbitMQConsumer
+     * pueda convertir el mensaje a ClientEvent (record Java).
      */
     @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            SimpleRabbitListenerContainerFactoryConfigurer configurer,
-            MessageConverter messageConverter) {
-
+    public RabbitListenerContainerFactory<?> rabbitListenerContainerFactory(
+            ConnectionFactory connectionFactory) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        configurer.configure(factory, connectionFactory);
-        factory.setMessageConverter(messageConverter);
-
-        // Configuración adicional
-        factory.setConcurrentConsumers(3);  // 3 consumidores concurrentes
-        factory.setMaxConcurrentConsumers(10);  // Hasta 10 en peak
-        factory.setPrefetchCount(1);  // Un mensaje a la vez por consumer
-
+        factory.setConnectionFactory(connectionFactory);
+        factory.setMessageConverter(jsonMessageConverter());
         return factory;
+    }
+
+    // ==================== Queue & Exchange (Consumer) ====================
+
+    /**
+     * Queue donde ms-account escucha los eventos de ms-customer.
+     * Durable: sobrevive reinicios de RabbitMQ.
+     */
+    @Bean
+    public Queue customerEventsQueue() {
+        return QueueBuilder.durable(customerQueueName).build();
+    }
+
+    /**
+     * Exchange del que ms-account recibe eventos.
+     * Debe coincidir con el Exchange configurado en ms-customer.
+     */
+    @Bean
+    public TopicExchange customerExchange() {
+        return new TopicExchange(customerExchangeName);
+    }
+
+    /**
+     * Binding: conecta la queue del consumidor al exchange de ms-customer.
+     * Routing key "#" → acepta todos los eventos de cliente.
+     */
+    @Bean
+    public Binding customerEventsBinding(Queue customerEventsQueue, TopicExchange customerExchange) {
+        return BindingBuilder
+                .bind(customerEventsQueue)
+                .to(customerExchange)
+                .with("customer.#");
     }
 }

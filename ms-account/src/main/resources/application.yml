@@ -14,13 +14,26 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
       default_schema: account
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         default_schema: account
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+rabbitmq:
+  queue:
+    customer:
+      name: customer.events.queue
+  exchange:
+    customer:
+      name: customer.exchange
 
 eureka:
   client:
