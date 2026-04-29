@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.14</version>
+        <version>3.2.0</version>
         <relativePath/>
     </parent>
     
@@ -19,18 +19,24 @@
     <description>Eureka Server - Service Discovery</description>
     
     <properties>
-        <java.version>1.8</java.version>
-        <spring-cloud.version>2021.0.8</spring-cloud.version>
+        <java.version>17</java.version>
+        <spring-cloud-netflix.version>4.2.0</spring-cloud-netflix.version>
     </properties>
     
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+            <version>${spring-cloud-netflix.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- JAXB necesario para Java 17+ -->
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -38,18 +44,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     
     <build>
         <plugins>

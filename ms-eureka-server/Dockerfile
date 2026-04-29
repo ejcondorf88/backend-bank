@@ -13,6 +13,7 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
+# Boot 3.x layertools
 RUN java -Djarmode=layertools -jar target/*.jar extract
 
 # ============================================================================
@@ -38,4 +39,5 @@ EXPOSE 8761
 # Default: 256MB heap for lightweight service discovery
 ENV JAVA_OPTS="-Xms128m -Xmx256m -Xss1m -XX:MaxMetaspaceSize=128m -XX:+UseContainerSupport"
 
+# Boot 3.x launcher
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
