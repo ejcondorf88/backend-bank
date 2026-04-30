@@ -130,11 +130,11 @@ services:
       # Perfil activo
       SPRING_PROFILES_ACTIVE: railway
 
-      # Base de datos Railway
-      DATABASE_URL: jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=customer&sslmode=require
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: aJrCigJkyYokNwRvpRggQKpaXkDXbduK
-      DATABASE_SCHEMA: customer
+      # Base de datos (desde .env)
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA_CUSTOMER:-customer}
 
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -179,11 +179,11 @@ services:
       # Perfil activo
       SPRING_PROFILES_ACTIVE: railway
 
-      # Base de datos Railway
-      DATABASE_URL: jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=account&sslmode=require
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: aJrCigJkyYokNwRvpRggQKpaXkDXbduK
-      DATABASE_SCHEMA: account
+      # Base de datos (desde .env)
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA_ACCOUNT:-account}
 
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
