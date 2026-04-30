@@ -67,6 +67,7 @@ services:
   # Eureka Server - Service Discovery
   # ==========================================================================
   eureka-server:
+    build: ./ms-eureka-server
     image: backend-bank/ms-eureka-server:1.0.0
     container_name: eureka-server
     ports:
@@ -94,6 +95,7 @@ services:
   # API Gateway
   # ==========================================================================
   gateway:
+    build: ./ms-gateway
     image: backend-bank/ms-gateway:1.0.0
     container_name: gateway
     ports:
@@ -122,6 +124,7 @@ services:
   # Customer Microservice
   # ==========================================================================
   ms-customer:
+    build: ./ms-customer
     image: backend-bank/ms-customer:1.0.0
     container_name: ms-customer
     ports:
@@ -171,6 +174,7 @@ services:
   # Account Microservice
   # ==========================================================================
   ms-account:
+    build: ./ms-account
     image: backend-bank/ms-account:1.0.0
     container_name: ms-account
     ports:
