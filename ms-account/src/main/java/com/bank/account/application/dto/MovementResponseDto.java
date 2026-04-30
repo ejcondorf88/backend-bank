@@ -1,5 +1,6 @@
 package com.bank.account.application.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -7,13 +8,25 @@ import java.time.LocalDateTime;
  * DTO for movement responses.
  * Used to return movement data to clients.
  */
+@Schema(description = "DTO para la respuesta de datos de un movimiento")
 public class MovementResponseDto {
 
+    @Schema(description = "ID interno del movimiento", example = "1")
     private Long id;
+
+    @Schema(description = "Numero de cuenta", example = "478758")
     private String accountNumber;
+
+    @Schema(description = "Fecha y hora del movimiento", example = "2024-04-30T10:00:00")
     private LocalDateTime date;
+
+    @Schema(description = "Tipo de movimiento", example = "Deposito")
     private String type;
+
+    @Schema(description = "Monto del movimiento", example = "100.00")
     private BigDecimal amount;
+
+    @Schema(description = "Saldo resultante despues del movimiento", example = "2100.00")
     private BigDecimal balance;
 
     // Default constructor

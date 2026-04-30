@@ -72,26 +72,6 @@ management:
     health:
       show-details: always
 
-# Swagger/OpenAPI
-springdoc:
-  api-docs:
-    path: /api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operationsSorter: method
-    tagsSorter: alpha
-    tryItOutEnabled: true
-    filter: true
-  info:
-    title: Customer Service API
-    description: API REST para gestion de clientes
-    version: ${APP_VERSION:1.0.0}
-    contact:
-      name: Bank Development Team
-      email: dev@bank.com
-
 # Logging detallado para desarrollo
 logging:
   level:

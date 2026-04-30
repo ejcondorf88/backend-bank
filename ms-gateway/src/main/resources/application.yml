@@ -27,6 +27,30 @@ spring:
           uri: lb://ms-account
           predicates:
             - Path=/reportes/**
+        # OpenApi Aggregation Routes
+        - id: ms-customer-openapi
+          uri: lb://ms-customer
+          predicates:
+            - Path=/v3/api-docs/ms-customer/**, /v3/api-docs/ms-customer
+          filters:
+            - RewritePath=/v3/api-docs/ms-customer(?<segment>.*), /v3/api-docs$\{segment}
+        - id: ms-account-openapi
+          uri: lb://ms-account
+          predicates:
+            - Path=/v3/api-docs/ms-account/**, /v3/api-docs/ms-account
+          filters:
+            - RewritePath=/v3/api-docs/ms-account(?<segment>.*), /v3/api-docs$\{segment}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: MS-Customer (Clientes)
+        url: /v3/api-docs/ms-customer
+      - name: MS-Account (Cuentas/Movimientos)
+        url: /v3/api-docs/ms-account
+  api-docs:
+    path: /v3/api-docs
 
 eureka:
   client:

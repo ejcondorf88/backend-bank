@@ -1,5 +1,6 @@
 package com.bank.account.application.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
@@ -26,11 +27,13 @@ import java.time.LocalDateTime;
  * Si una cuenta no tiene movimientos en el rango, igual aparece
  * con los campos de movimiento en null.
  */
+@Schema(description = "DTO que representa una linea detallada del reporte de estado de cuenta")
 public class StatementLineDto {
 
     /**
      * Fecha y hora del movimiento.
      */
+    @Schema(description = "Fecha del movimiento", example = "2022-02-10T00:00:00")
     @JsonProperty("Fecha")
     private LocalDateTime fecha;
 
@@ -38,18 +41,21 @@ public class StatementLineDto {
      * Nombre del cliente propietario de la cuenta.
      * Se resuelve desde la proyección local de eventos de ms-customer.
      */
+    @Schema(description = "Nombre completo del cliente", example = "Marianela Montalvo")
     @JsonProperty("Cliente")
     private String cliente;
 
     /**
      * Número de la cuenta bancaria.
      */
+    @Schema(description = "Numero de cuenta", example = "225487")
     @JsonProperty("Numero Cuenta")
     private String numeroCuenta;
 
     /**
      * Tipo de cuenta: "Ahorro" o "Corriente".
      */
+    @Schema(description = "Tipo de cuenta", example = "Corriente")
     @JsonProperty("Tipo")
     private String tipo;
 
@@ -57,12 +63,14 @@ public class StatementLineDto {
      * Saldo de la cuenta ANTES del movimiento.
      * Calculado como: saldoDisponible - movimiento.
      */
+    @Schema(description = "Saldo inicial antes del movimiento", example = "100.00")
     @JsonProperty("Saldo Inicial")
     private BigDecimal saldoInicial;
 
     /**
      * Estado de la cuenta: true=activa, false=inactiva.
      */
+    @Schema(description = "Estado actual de la cuenta", example = "true")
     @JsonProperty("Estado")
     private Boolean estado;
 
@@ -70,12 +78,14 @@ public class StatementLineDto {
      * Valor del movimiento.
      * Positivo para depósitos, negativo para retiros.
      */
+    @Schema(description = "Monto del movimiento realizado", example = "600.00")
     @JsonProperty("Movimiento")
     private BigDecimal movimiento;
 
     /**
      * Saldo disponible de la cuenta DESPUÉS del movimiento.
      */
+    @Schema(description = "Saldo final despues del movimiento", example = "700.00")
     @JsonProperty("Saldo Disponible")
     private BigDecimal saldoDisponible;
 

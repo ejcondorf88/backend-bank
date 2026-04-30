@@ -1,5 +1,6 @@
 package com.bank.account.application.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -9,21 +10,26 @@ import java.time.LocalDateTime;
  * DTO for movement creation requests.
  * Uses Bean Validation for input validation.
  */
+@Schema(description = "DTO para la creacion de movimientos (deposito/retiro)")
 public class MovementRequestDto {
 
+    @Schema(description = "Numero de cuenta", example = "478758")
     @NotBlank(message = "Account number is required")
     @Size(min = 3, max = 20, message = "Account number must be between 3 and 20 characters")
     private String accountNumber;
 
+    @Schema(description = "Tipo de movimiento: Deposito o Retiro", example = "Deposito")
     @NotBlank(message = "Movement type is required")
     @Pattern(regexp = "^(Deposito|Retiro)$", message = "Movement type must be 'Deposito' or 'Retiro'")
     private String type;
 
+    @Schema(description = "Monto del movimiento", example = "100.00")
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than zero")
     @Digits(integer = 15, fraction = 2, message = "Amount must have maximum 15 integer digits and 2 decimal places")
     private BigDecimal amount;
 
+    @Schema(description = "Fecha del movimiento (opcional, por defecto NOW)", example = "2024-04-30T10:00:00")
     private LocalDateTime date;
 
     // Default constructor

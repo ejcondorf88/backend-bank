@@ -1,18 +1,31 @@
 package com.bank.account.application.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
 /**
  * DTO for account responses.
  * Used to return account data to clients.
  */
+@Schema(description = "DTO para la respuesta de datos de una cuenta")
 public class AccountResponseDto {
 
+    @Schema(description = "ID interno de la cuenta", example = "1")
     private Long id;
+
+    @Schema(description = "Numero de cuenta", example = "478758")
     private String accountNumber;
+
+    @Schema(description = "Tipo de cuenta", example = "Ahorro")
     private String accountType;
+
+    @Schema(description = "Saldo actual de la cuenta", example = "2000.00")
     private BigDecimal balance;
+
+    @Schema(description = "Estado de la cuenta", example = "true")
     private boolean active;
+
+    @Schema(description = "ID del cliente propietario", example = "1")
     private Long clientId;
 
     // Default constructor
