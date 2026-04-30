@@ -1,9 +1,0 @@
-
-SELECT 'CREATE DATABASE bankdb'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bankdb')\gexec
-
-CREATE SCHEMA IF NOT EXISTS customer;
-
-CREATE SCHEMA IF NOT EXISTS account;
-
-
