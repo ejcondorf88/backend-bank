@@ -11,11 +11,11 @@ import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.exception.MovementNotFoundException;
 import com.bank.account.domain.port.out.AccountRepository;
 import com.bank.account.domain.port.out.MovementRepository;
+import com.bank.account.domain.strategy.MovementStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for MovementApplicationService.
- * Tests application layer use cases with mocked repositories.
+ * Tests application layer use cases with mocked repositories and strategies.
  * No Spring context - pure Mockito tests.
  * Implements F5 requirement: Unit tests for application layer.
  */
@@ -50,7 +50,12 @@ class MovementApplicationServiceTest {
     @Mock
     private MovementApplicationMapper movementMapper;
 
-    @InjectMocks
+    @Mock
+    private MovementStrategy depositStrategy;
+
+    @Mock
+    private MovementStrategy withdrawalStrategy;
+
     private MovementApplicationService movementService;
 
     private Account activeAccount;
@@ -61,6 +66,18 @@ class MovementApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Stub strategies
+        when(depositStrategy.getMovementType()).thenReturn("Deposito");
+        when(withdrawalStrategy.getMovementType()).thenReturn("Retiro");
+
+        // Initialize service manually with mocked strategies
+        movementService = new MovementApplicationService(
+                movementRepository,
+                accountRepository,
+                movementMapper,
+                Arrays.asList(depositStrategy, withdrawalStrategy)
+        );
+
         // Create active account with balance
         activeAccount = new Account("478758", "Ahorro", new BigDecimal("2000.00"), true, 1L);
         activeAccount.setId(1L);
@@ -91,7 +108,9 @@ class MovementApplicationServiceTest {
     void shouldCreateDepositSuccessfully() {
         // Given
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(depositStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("2600.00"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(depositMovement);
         when(movementRepository.save(any(Movement.class))).thenReturn(depositMovement);
         when(movementMapper.toResponseDto(depositMovement)).thenReturn(depositResponseDto);
 
@@ -133,7 +152,7 @@ class MovementApplicationServiceTest {
         // When & Then
         InvalidAccountStateException exception = assertThrows(InvalidAccountStateException.class, () ->
                 movementService.createDeposit("478758", new BigDecimal("600.00")));
-        assertEquals("Cannot deposit to inactive account", exception.getMessage());
+        assertEquals("Cannot create movement on inactive account", exception.getMessage());
         verify(movementRepository, never()).save(any());
     }
 
@@ -144,7 +163,9 @@ class MovementApplicationServiceTest {
     void shouldCreateWithdrawalSuccessfully() {
         // Given
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(withdrawalStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("1425.00"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(withdrawalMovement);
         when(movementRepository.save(any(Movement.class))).thenReturn(withdrawalMovement);
         when(movementMapper.toResponseDto(withdrawalMovement)).thenReturn(withdrawalResponseDto);
 
@@ -166,6 +187,7 @@ class MovementApplicationServiceTest {
     void shouldThrowExceptionWhenWithdrawingWithInsufficientBalance() {
         // Given
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(withdrawalStrategy.execute(eq(activeAccount), any())).thenThrow(new InsufficientBalanceException("Saldo no disponible"));
 
         // When & Then
         InsufficientBalanceException exception = assertThrows(InsufficientBalanceException.class, () ->
@@ -198,7 +220,7 @@ class MovementApplicationServiceTest {
         // When & Then
         InvalidAccountStateException exception = assertThrows(InvalidAccountStateException.class, () ->
                 movementService.createWithdrawal("478758", new BigDecimal("500.00")));
-        assertEquals("Cannot withdraw from inactive account", exception.getMessage());
+        assertEquals("Cannot create movement on inactive account", exception.getMessage());
     }
 
     // ==================== Create Movement from DTO Tests ====================
@@ -210,6 +232,7 @@ class MovementApplicationServiceTest {
         MovementRequestDto requestDto = new MovementRequestDto("478758", "Deposito", new BigDecimal("600.00"));
 
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(depositStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("2600.00"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
         when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(depositMovement);
         when(movementRepository.save(depositMovement)).thenReturn(depositMovement);
@@ -232,6 +255,7 @@ class MovementApplicationServiceTest {
         MovementRequestDto requestDto = new MovementRequestDto("478758", "Retiro", new BigDecimal("575.00"));
 
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(withdrawalStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("1425.00"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
         when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(withdrawalMovement);
         when(movementRepository.save(withdrawalMovement)).thenReturn(withdrawalMovement);
@@ -524,7 +548,9 @@ class MovementApplicationServiceTest {
                 deposit.getDate(), "Deposito", new BigDecimal("100.00"), new BigDecimal("100.00"));
 
         when(accountRepository.findByAccountNumber("225487")).thenReturn(Optional.of(zeroBalanceAccount));
+        when(depositStrategy.execute(eq(zeroBalanceAccount), any())).thenReturn(new BigDecimal("100.00"));
         when(accountRepository.save(zeroBalanceAccount)).thenReturn(zeroBalanceAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(deposit);
         when(movementRepository.save(any(Movement.class))).thenReturn(deposit);
         when(movementMapper.toResponseDto(deposit)).thenReturn(depositDto);
 
@@ -550,7 +576,9 @@ class MovementApplicationServiceTest {
                 withdrawal.getDate(), "Retiro", new BigDecimal("-540.00"), BigDecimal.ZERO);
 
         when(accountRepository.findByAccountNumber("496825")).thenReturn(Optional.of(exactBalanceAccount));
+        when(withdrawalStrategy.execute(eq(exactBalanceAccount), any())).thenReturn(BigDecimal.ZERO);
         when(accountRepository.save(exactBalanceAccount)).thenReturn(exactBalanceAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(withdrawal);
         when(movementRepository.save(any(Movement.class))).thenReturn(withdrawal);
         when(movementMapper.toResponseDto(withdrawal)).thenReturn(withdrawalDto);
 
@@ -567,6 +595,7 @@ class MovementApplicationServiceTest {
     void shouldThrowExceptionForWithdrawalExceedingBalance() {
         // Given
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(withdrawalStrategy.execute(eq(activeAccount), any())).thenThrow(new InsufficientBalanceException("Saldo no disponible"));
 
         // When & Then - Try to withdraw more than balance
         InsufficientBalanceException exception = assertThrows(InsufficientBalanceException.class, () ->
@@ -587,7 +616,9 @@ class MovementApplicationServiceTest {
                 largeMovement.getDate(), "Deposito", largeAmount, new BigDecimal("1001999.99"));
 
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(depositStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("1001999.99"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(largeMovement);
         when(movementRepository.save(any(Movement.class))).thenReturn(largeMovement);
         when(movementMapper.toResponseDto(largeMovement)).thenReturn(largeDto);
 
@@ -611,7 +642,9 @@ class MovementApplicationServiceTest {
                 smallMovement.getDate(), "Deposito", smallAmount, new BigDecimal("2000.01"));
 
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(activeAccount));
+        when(depositStrategy.execute(eq(activeAccount), any())).thenReturn(new BigDecimal("2000.01"));
         when(accountRepository.save(activeAccount)).thenReturn(activeAccount);
+        when(movementMapper.fromTransaction(any(), any(), any(), any())).thenReturn(smallMovement);
         when(movementRepository.save(any(Movement.class))).thenReturn(smallMovement);
         when(movementMapper.toResponseDto(smallMovement)).thenReturn(smallDto);
 
