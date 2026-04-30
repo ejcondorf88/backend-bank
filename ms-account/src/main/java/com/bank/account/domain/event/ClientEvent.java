@@ -2,26 +2,14 @@ package com.bank.account.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 
 /**
- * Evento de dominio recibido desde ms-customer via RabbitMQ.
- * Replica la estructura del evento publicado por ms-customer.
- *
- * <p>Usa @JsonCreator para que Jackson pueda deserializar el record
- * desde JSON sin depender del canonical constructor que tiene validaciones
- * estrictas que fallarían durante la deserialización parcial.
- *
- * <p>Tipos de evento:
- * <ul>
- *   <li>CLIENT_CREATED     — Nuevo cliente registrado</li>
- *   <li>CLIENT_UPDATED     — Datos del cliente modificados</li>
- *   <li>CLIENT_DELETED     — Cliente eliminado del sistema</li>
- *   <li>CLIENT_ACTIVATED   — Cliente habilitado</li>
- *   <li>CLIENT_DEACTIVATED — Cliente deshabilitado</li>
- * </ul>
+ * Domain event received from ms-customer via RabbitMQ.
+ * Synchronized with ms-customer fields to prevent UnrecognizedPropertyException.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ClientEvent(
         String eventId,
         String eventType,
@@ -30,26 +18,26 @@ public record ClientEvent(
         Long clientId,
         String identification,
         String name,
-        Boolean active,
-        ClientEventPayload payload
+        String phone,
+        String address,
+        Boolean active
 ) implements DomainEvent {
 
     /**
      * Constructor Jackson-friendly.
-     * Sin validaciones — la validación queda en el dominio de ms-customer
-     * que publicó el evento. ms-account solo consume y registra.
      */
     @JsonCreator
     public static ClientEvent of(
-            @JsonProperty("eventId")       String eventId,
-            @JsonProperty("eventType")     String eventType,
-            @JsonProperty("occurredOn")    Instant occurredOn,
-            @JsonProperty("source")        String source,
-            @JsonProperty("clientId")      Long clientId,
+            @JsonProperty("eventId")        String eventId,
+            @JsonProperty("eventType")      String eventType,
+            @JsonProperty("occurredOn")     Instant occurredOn,
+            @JsonProperty("source")         String source,
+            @JsonProperty("clientId")       Long clientId,
             @JsonProperty("identification") String identification,
-            @JsonProperty("name")          String name,
-            @JsonProperty("active")        Boolean active,
-            @JsonProperty("payload")       ClientEventPayload payload) {
+            @JsonProperty("name")           String name,
+            @JsonProperty("phone")          String phone,
+            @JsonProperty("address")        String address,
+            @JsonProperty("active")         Boolean active) {
         return new ClientEvent(
                 eventId != null ? eventId : "unknown",
                 eventType != null ? eventType : "UNKNOWN",
@@ -58,13 +46,14 @@ public record ClientEvent(
                 clientId != null ? clientId : 0L,
                 identification != null ? identification : "",
                 name,
-                active,
-                payload
+                phone,
+                address,
+                active != null ? active : true
         );
     }
 
     // -------------------------------------------------------------------------
-    // Helper methods — verificadores por tipo de evento
+    // Helper methods
     // -------------------------------------------------------------------------
 
     public boolean isClientCreated()     { return "CLIENT_CREATED".equals(eventType);     }
@@ -72,16 +61,6 @@ public record ClientEvent(
     public boolean isClientDeleted()     { return "CLIENT_DELETED".equals(eventType);     }
     public boolean isClientActivated()   { return "CLIENT_ACTIVATED".equals(eventType);   }
     public boolean isClientDeactivated() { return "CLIENT_DEACTIVATED".equals(eventType); }
-
-    /**
-     * Obtiene el estado activo del cliente desde payload o campo directo.
-     */
-    public boolean isActive() {
-        if (payload != null && payload.active() != null) {
-            return payload.active();
-        }
-        return active != null && active;
-    }
 
     // -------------------------------------------------------------------------
     // DomainEvent interface

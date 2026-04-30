@@ -6,6 +6,7 @@ import com.bank.account.domain.exception.InsufficientBalanceException;
 import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.exception.InvalidAccountTypeException;
 import com.bank.account.domain.exception.InvalidMovementTypeException;
+import com.bank.account.domain.exception.ClientNotFoundException;
 import com.bank.account.domain.exception.MovementNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -35,12 +36,16 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccountNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleAccountNotFoundException(AccountNotFoundException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("status", HttpStatus.NOT_FOUND.value());
-        error.put("error", "Not Found");
-        error.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return buildError(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
+    }
+
+    /**
+     * Maneja excepciones cuando un cliente no es encontrado en la proyección local.
+     * HTTP 404 - Not Found
+     */
+    @ExceptionHandler(ClientNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleClientNotFoundException(ClientNotFoundException ex) {
+        return buildError(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
     /**
