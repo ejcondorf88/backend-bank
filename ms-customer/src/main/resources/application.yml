@@ -31,6 +31,13 @@ spring:
       hibernate:
         format_sql: true
         default_schema: ${DATABASE_SCHEMA:customer}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    template:
+      mandatory: true
 
 # Eureka local activo
 eureka:
@@ -42,12 +49,8 @@ eureka:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
 
-# RabbitMQ local
+# Configuracion de Negocio para RabbitMQ (Exchanges/Queues)
 rabbitmq:
-  host: ${RABBITMQ_HOST:localhost}
-  port: ${RABBITMQ_PORT:5672}
-  username: ${RABBITMQ_USER:guest}
-  password: ${RABBITMQ_PASSWORD:guest}
   exchange:
     customer:
       name: customer.events
