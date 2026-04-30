@@ -43,6 +43,8 @@
 - [Infraestructura (Terraform)](#infraestructura-terraform)
 - [Integraciones Futuras](#integraciones-futuras)
 - [Valor Agregado](#valor-agregado)
+- [Patrones de Diseño Implementados](#patrones-de-diseño-implementados)
+- [Fuera de Alcance (Roadmap)](#fuera-de-alcance-roadmap)
 
 ---
 
@@ -928,6 +930,29 @@ terraform apply -auto-approve
 | **Despliegue** | CI/CD automatizado con GitHub Actions |
 
 ---
+
+## 🧩 Patrones de Diseño Implementados
+
+Además de la Arquitectura Hexagonal, el sistema aplica los siguientes patrones:
+
+1.  **Strategy Pattern**: Utilizado en `ms-account` para procesar diferentes tipos de movimientos (Depósitos/Retiros) de forma extensible sin usar `if/else` masivos.
+2.  **Event-Driven Architecture**: Comunicación asíncrona entre microservicios para garantizar el desacoplamiento.
+3.  **API Gateway**: Punto único de entrada que centraliza el enrutamiento y balanceo de carga.
+4.  **Service Discovery (Eureka)**: Registro dinámico de instancias para evitar hard-coding de IPs.
+5.  **Domain Events**: Uso de eventos inmutables (Records) para notificar cambios de estado en el dominio.
+
+## 🚧 Fuera de Alcance (Roadmap)
+
+Dada la naturaleza del examen técnico, los siguientes puntos se han dejado fuera para priorizar la lógica de negocio y arquitectura core, pero se consideran para una fase de producción:
+
+1.  **Spring Security (JWT/OAuth2)**: El sistema actualmente no requiere autenticación para facilitar las pruebas del evaluador.
+2.  **Circuit Breaker (Resilience4j)**: Implementación de tolerancia a fallos en cascada.
+3.  **Centralized Logging (ELK/Graylog)**: Agregación de logs de todos los microservicios.
+4.  **Distributed Tracing (Sleuth/Zipkin)**: Seguimiento de peticiones a través de múltiples servicios.
+5.  **Database per Service**: Actualmente se comparte una instancia de PostgreSQL con esquemas separados; en producción real, cada servicio debería tener su propia base de datos física.
+
+---
+
 
 ## 🎯 Conclusión
 
