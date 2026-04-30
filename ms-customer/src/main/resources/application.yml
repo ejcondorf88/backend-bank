@@ -14,17 +14,17 @@ spring:
   config:
     import: optional:file:.env[.properties]
   datasource:
-    # PostgreSQL local (Docker)
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer}
+    # PostgreSQL Railway
+    url: ${DATABASE_URL:jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=customer&sslmode=require}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USER:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    password: ${DATABASE_PASSWORD:aJrCigJkyYokNwRvpRggQKpaXkDXbduK}
     hikari:
       schema: ${DATABASE_SCHEMA:customer}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     default_schema: customer
     show-sql: true
     properties:
