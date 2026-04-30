@@ -106,9 +106,7 @@ public class AccountController {
                     schema = @Schema(implementation = AccountResponseDto.class)))
     @GetMapping("/active")
     public ResponseEntity<List<AccountResponseDto>> getActiveAccounts() {
-        // Note: This requires a new method in service or we filter from findAll
-        // For now, we'll return all and filter
-        List<AccountResponseDto> accounts = accountService.findAll();
+        List<AccountResponseDto> accounts = accountService.findAllActive();
         return ResponseEntity.ok(accounts);
     }
 

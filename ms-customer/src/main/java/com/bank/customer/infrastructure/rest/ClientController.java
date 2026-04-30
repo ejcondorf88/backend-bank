@@ -3,6 +3,8 @@ package com.bank.customer.infrastructure.rest;
 import com.bank.customer.application.dto.ClientRequestDto;
 import com.bank.customer.application.dto.ClientResponseDto;
 import com.bank.customer.application.mapper.ClientApplicationMapper;
+import com.bank.customer.application.port.in.command.CreateClientCommand;
+import com.bank.customer.application.port.in.command.UpdateClientCommand;
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.port.in.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,8 +49,8 @@ public class ClientController {
     @PostMapping
     public ResponseEntity<ClientResponseDto> createClient(
             @Valid @RequestBody ClientRequestDto requestDto) {
-        Client client = clientDtoMapper.toDomain(requestDto);
-        Client createdClient = clientService.createClient(client);
+        CreateClientCommand command = clientDtoMapper.toCreateCommand(requestDto);
+        Client createdClient = clientService.createClient(command);
         ClientResponseDto responseDto = clientDtoMapper.toResponseDto(createdClient);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
@@ -135,8 +137,8 @@ public class ClientController {
             @Parameter(description = "ID interno del cliente a actualizar", example = "1", required = true)
             @PathVariable Long id,
             @Valid @RequestBody ClientRequestDto requestDto) {
-        Client client = clientDtoMapper.toDomainForUpdate(id, requestDto);
-        Client updatedClient = clientService.updateClient(client);
+        UpdateClientCommand command = clientDtoMapper.toUpdateCommand(id, requestDto);
+        Client updatedClient = clientService.updateClient(command);
         ClientResponseDto responseDto = clientDtoMapper.toResponseDto(updatedClient);
         return ResponseEntity.ok(responseDto);
     }

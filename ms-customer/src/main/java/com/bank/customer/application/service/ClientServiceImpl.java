@@ -1,8 +1,10 @@
 package com.bank.customer.application.service;
 
+import com.bank.customer.application.mapper.ClientApplicationMapper;
+import com.bank.customer.application.port.in.command.CreateClientCommand;
+import com.bank.customer.application.port.in.command.UpdateClientCommand;
 import com.bank.customer.domain.entity.Client;
 import com.bank.customer.domain.event.ClientEvent;
-import com.bank.customer.domain.event.ClientEventPayload;
 import com.bank.customer.domain.exception.ClientAlreadyExistsException;
 import com.bank.customer.domain.exception.ClientNotFoundException;
 import com.bank.customer.domain.exception.InvalidClientStateException;
@@ -22,29 +24,28 @@ public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
     private final DomainEventPublisher eventPublisher;
+    private final ClientApplicationMapper mapper;
 
-    public ClientServiceImpl(ClientRepository clientRepository, DomainEventPublisher eventPublisher) {
+    public ClientServiceImpl(ClientRepository clientRepository,
+                              DomainEventPublisher eventPublisher,
+                              ClientApplicationMapper mapper) {
         this.clientRepository = clientRepository;
         this.eventPublisher = eventPublisher;
+        this.mapper = mapper;
     }
 
     @Override
     @Transactional
-    public Client createClient(Client client) {
+    public Client createClient(CreateClientCommand command) {
+        Client client = mapper.toDomain(command);
+
         if (clientRepository.existsByIdentification(client.getIdentification())) {
             throw new ClientAlreadyExistsException(client.getIdentification());
         }
         Client savedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        ClientEventPayload payload = createClientPayload(savedClient);
-        eventPublisher.publish(ClientEvent.clientCreated(
-                savedClient.getId(),
-                savedClient.getIdentification(),
-                savedClient.getName(),
-                savedClient.isActive(),
-                payload
-        ));
+        eventPublisher.publish(ClientEvent.fromCreated(savedClient));
 
         return savedClient;
     }
@@ -83,10 +84,12 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     @Transactional
-    public Client updateClient(Client client) {
-        if (client.getId() == null || !clientRepository.existsById(client.getId())) {
-            throw new ClientNotFoundException(client.getId());
+    public Client updateClient(UpdateClientCommand command) {
+        if (command.id() == null || !clientRepository.existsById(command.id())) {
+            throw new ClientNotFoundException(command.id());
         }
+        Client client = mapper.toDomain(command);
+
         // Verificar que la identification no pertenece a OTRO cliente distinto
         clientRepository.findByIdentification(client.getIdentification())
                 .filter(existing -> !existing.getId().equals(client.getId()))
@@ -96,14 +99,7 @@ public class ClientServiceImpl implements ClientService {
         Client updatedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        ClientEventPayload payload = createClientPayload(updatedClient);
-        eventPublisher.publish(ClientEvent.clientUpdated(
-                updatedClient.getId(),
-                updatedClient.getIdentification(),
-                updatedClient.getName(),
-                updatedClient.isActive(),
-                payload
-        ));
+        eventPublisher.publish(ClientEvent.fromUpdated(updatedClient));
 
         return updatedClient;
     }
@@ -118,11 +114,10 @@ public class ClientServiceImpl implements ClientService {
             throw new InvalidClientStateException("Cannot delete active client. Deactivate first.");
         }
 
-        String identification = client.getIdentification();
         clientRepository.deleteById(clientId);
 
         // Publicar evento de dominio
-        eventPublisher.publish(ClientEvent.clientDeleted(clientId, identification));
+        eventPublisher.publish(ClientEvent.fromDeleted(client));
     }
 
     @Override
@@ -135,11 +130,7 @@ public class ClientServiceImpl implements ClientService {
         Client activatedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        eventPublisher.publish(ClientEvent.clientActivated(
-                activatedClient.getId(),
-                activatedClient.getIdentification(),
-                activatedClient.getName()
-        ));
+        eventPublisher.publish(ClientEvent.fromActivated(activatedClient));
 
         return activatedClient;
     }
@@ -154,11 +145,7 @@ public class ClientServiceImpl implements ClientService {
         Client deactivatedClient = clientRepository.save(client);
 
         // Publicar evento de dominio
-        eventPublisher.publish(ClientEvent.clientDeactivated(
-                deactivatedClient.getId(),
-                deactivatedClient.getIdentification(),
-                deactivatedClient.getName()
-        ));
+        eventPublisher.publish(ClientEvent.fromDeactivated(deactivatedClient));
 
         return deactivatedClient;
     }
@@ -168,18 +155,4 @@ public class ClientServiceImpl implements ClientService {
         return clientRepository.existsByIdentification(identification);
     }
 
-    /**
-     * Crea un payload con los datos del cliente para los eventos.
-     */
-    private ClientEventPayload createClientPayload(Client client) {
-        return ClientEventPayload.from(
-                client.getId(),
-                client.getName(),
-                client.getIdentification(),
-                client.getPhone(),
-                client.getAddress(),
-                client.isActive()
-        );
     }
-
-}

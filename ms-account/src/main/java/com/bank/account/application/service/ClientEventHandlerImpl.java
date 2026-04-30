@@ -1,7 +1,7 @@
 package com.bank.account.application.service;
 
 import com.bank.account.domain.event.ClientEvent;
-import com.bank.account.domain.service.ClientEventHandler;
+import com.bank.account.domain.port.in.ClientEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

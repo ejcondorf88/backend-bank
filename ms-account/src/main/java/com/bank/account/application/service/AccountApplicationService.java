@@ -7,7 +7,7 @@ import com.bank.account.application.mapper.AccountApplicationMapper;
 import com.bank.account.domain.entity.Account;
 import com.bank.account.domain.exception.AccountAlreadyExistsException;
 import com.bank.account.domain.exception.AccountNotFoundException;
-import com.bank.account.domain.repository.AccountRepository;
+import com.bank.account.domain.port.out.AccountRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +18,6 @@ import java.util.stream.Collectors;
  * Application service for account use cases.
  * Orchestrates domain logic and coordinates between domain and infrastructure layers.
  * Uses DTOs for input/output and delegates to the domain repository.
- * This is NOT the implementation of domain AccountService interface - it's an application service
- * that uses DTOs and coordinates between REST controller and domain.
  */
 @Service
 @Transactional(readOnly = true)
@@ -64,6 +62,12 @@ public class AccountApplicationService {
 
     public List<AccountResponseDto> findAll() {
         return accountRepository.findAll().stream()
+                .map(accountMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<AccountResponseDto> findAllActive() {
+        return accountRepository.findByActiveTrue().stream()
                 .map(accountMapper::toResponseDto)
                 .collect(Collectors.toList());
     }

@@ -1,11 +1,17 @@
 package com.bank.customer.domain.event;
 
+import com.bank.customer.domain.entity.Client;
+
 import java.time.Instant;
 import java.util.UUID;
 
 /**
  * Evento de dominio relacionado con Clientes.
  * Usa record para garantizar inmutabilidad.
+ * <p>
+ * Todos los datos relevantes del cliente están como campos planos del record.
+ * Esto elimina la duplicación que existía anteriormente entre los campos
+ * del record y el ClientEventPayload.
  *
  * <p>Tipos de evento manejados por {@link EventType}:
  * <ul>
@@ -24,8 +30,9 @@ public record ClientEvent(
         Long clientId,
         String identification,
         String name,
-        Boolean active,
-        ClientEventPayload payload
+        String phone,
+        String address,
+        Boolean active
 ) implements DomainEvent {
 
     static final String SERVICE_NAME = "ms-customer";
@@ -43,7 +50,6 @@ public record ClientEvent(
         }
         source = (source == null || source.isBlank()) ? SERVICE_NAME : source;
 
-        // NPE separado del check de valor negativo
         if (clientId == null) {
             throw new IllegalArgumentException("clientId cannot be null");
         }
@@ -56,12 +62,12 @@ public record ClientEvent(
     }
 
     // -------------------------------------------------------------------------
-    // Factory methods
+    // Factory methods — parámetros individuales
     // -------------------------------------------------------------------------
 
     public static ClientEvent clientCreated(Long clientId, String identification,
-                                            String name, Boolean active,
-                                            ClientEventPayload payload) {
+                                            String name, String phone, String address,
+                                            Boolean active) {
         return new ClientEvent(
                 generateId(),
                 EventType.CLIENT_CREATED.name(),
@@ -70,14 +76,15 @@ public record ClientEvent(
                 clientId,
                 identification,
                 name,
-                active,
-                payload
+                phone,
+                address,
+                active
         );
     }
 
     public static ClientEvent clientUpdated(Long clientId, String identification,
-                                            String name, Boolean active,
-                                            ClientEventPayload payload) {
+                                            String name, String phone, String address,
+                                            Boolean active) {
         return new ClientEvent(
                 generateId(),
                 EventType.CLIENT_UPDATED.name(),
@@ -86,8 +93,9 @@ public record ClientEvent(
                 clientId,
                 identification,
                 name,
-                active,
-                payload
+                phone,
+                address,
+                active
         );
     }
 
@@ -99,9 +107,10 @@ public record ClientEvent(
                 SERVICE_NAME,
                 clientId,
                 identification,
-                null,   // name no aplica para eliminación
-                null,   // active no aplica para eliminación
-                null    // payload no aplica para eliminación
+                null,   // name
+                null,   // phone
+                null,   // address
+                null    // active
         );
     }
 
@@ -114,8 +123,9 @@ public record ClientEvent(
                 clientId,
                 identification,
                 name,
-                Boolean.TRUE,
-                null
+                null,   // phone no aplica
+                null,   // address no aplica
+                Boolean.TRUE
         );
     }
 
@@ -128,8 +138,70 @@ public record ClientEvent(
                 clientId,
                 identification,
                 name,
-                Boolean.FALSE,
-                null
+                null,   // phone no aplica
+                null,   // address no aplica
+                Boolean.FALSE
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Factory methods — desde entidad Client
+    // -------------------------------------------------------------------------
+
+    /**
+     * Crea un evento CLIENT_CREATED a partir de un Client ya persistido.
+     */
+    public static ClientEvent fromCreated(Client client) {
+        return clientCreated(
+                client.getId(),
+                client.getIdentification(),
+                client.getName(),
+                client.getPhone(),
+                client.getAddress(),
+                client.isActive()
+        );
+    }
+
+    /**
+     * Crea un evento CLIENT_UPDATED a partir de un Client ya persistido.
+     */
+    public static ClientEvent fromUpdated(Client client) {
+        return clientUpdated(
+                client.getId(),
+                client.getIdentification(),
+                client.getName(),
+                client.getPhone(),
+                client.getAddress(),
+                client.isActive()
+        );
+    }
+
+    /**
+     * Crea un evento CLIENT_DELETED a partir de un Client.
+     */
+    public static ClientEvent fromDeleted(Client client) {
+        return clientDeleted(client.getId(), client.getIdentification());
+    }
+
+    /**
+     * Crea un evento CLIENT_ACTIVATED a partir de un Client.
+     */
+    public static ClientEvent fromActivated(Client client) {
+        return clientActivated(
+                client.getId(),
+                client.getIdentification(),
+                client.getName()
+        );
+    }
+
+    /**
+     * Crea un evento CLIENT_DEACTIVATED a partir de un Client.
+     */
+    public static ClientEvent fromDeactivated(Client client) {
+        return clientDeactivated(
+                client.getId(),
+                client.getIdentification(),
+                client.getName()
         );
     }
 

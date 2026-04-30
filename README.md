@@ -4,6 +4,8 @@
   <img src="https://img.shields.io/badge/PostgreSQL-15-blue?style=for-the-badge&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/RabbitMQ-3.12-orange?style=for-the-badge&logo=rabbitmq" alt="RabbitMQ">
   <img src="https://img.shields.io/badge/Hexagonal%20Architecture-✓-success?style=for-the-badge" alt="Hexagonal">
+  <img src="https://img.shields.io/badge/Tests-246%20unit-ae00ff?style=for-the-badge" alt="246 unit tests">
+  <img src="https://img.shields.io/badge/Karate-60%20scenarios-00c853?style=for-the-badge" alt="60 Karate scenarios">
 </p>
 
 <h1 align="center">🏦 Backend Bank</h1>
@@ -13,6 +15,7 @@
   <a href="#arquitectura">Arquitectura</a> •
   <a href="#diagramas-c4">Diagramas C4</a> •
   <a href="#por-que-hexagonal">¿Por qué Hexagonal?</a> •
+  <a href="#decisiones-de-diseño">Decisiones de Diseño</a> •
   <a href="#docker">Docker</a> •
   <a href="#ci-cd">CI/CD</a>
 </p>
@@ -26,8 +29,13 @@
   - [¿Por qué elegimos Hexagonal?](#por-qué-elegimos-hexagonal)
   - [Las 3 Capas](#las-3-capas)
   - [Flujo de Datos](#flujo-de-datos)
-- [Diagramas C4](#diagramas-c4)
+  - [Estructura de Paquetes](#estructura-de-paquetes)
 - [Decisiones de Diseño](#decisiones-de-diseño)
+  - [Command Objects](#command-objects)
+  - [Eventos de Dominio](#eventos-de-dominio)
+  - [Comunicación Asíncrona](#comunicación-asíncrona)
+  - [Mappers y Validación](#mappers-y-validación)
+- [Diagramas C4](#diagramas-c4)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Microservicios](#microservicios)
 - [Tests y Calidad](#tests-y-calidad)
@@ -54,9 +62,9 @@
 | **F2** | Registro de Movimientos (Depósitos/Retiros) | ✅ Completo |
 | **F3** | Validación de "Saldo no disponible" | ✅ Completo |
 | **F4** | Reportes por rango de fechas | ✅ Completo |
-| **F5** | Pruebas Unitarias | ✅ 74+ tests |
-| **F6** | Pruebas de Integración | ✅ 60+ escenarios Karate |
-| **F7** | Docker y Despliegue | ✅ Docker Compose |
+| **F5** | Pruebas Unitarias | ✅ **246 tests** |
+| **F6** | Pruebas de Integración | ✅ **60+ escenarios Karate** |
+| **F7** | Docker y Despliegue | ✅ Docker Compose (5 servicios) |
 
 ---
 
@@ -99,9 +107,11 @@ La **Arquitectura Hexagonal** (también llamada *Ports and Adapters* o *Arquitec
 **Responsabilidad**: Contener la lógica de negocio pura, sin dependencias de frameworks.
 
 **Contenido**:
-- **Entidades**: Objetos de negocio (Account, Movement, Client)
-- **Value Objects**: Objetos inmutables (Money, AccountNumber)
-- **Ports**: Interfaces que definen contratos (Repository, Service)
+- **Entidades**: Objetos de negocio (Account, Movement, Client, Person)
+- **Ports**: Interfaces organizadas por dirección:
+  - `domain/port/in/` — **Input Ports**: lo que el dominio ofrece (ej: `ClientService`, `MovementService`)
+  - `domain/port/out/` — **Output Ports**: lo que el dominio necesita (ej: `ClientRepository`, `DomainEventPublisher`)
+- **Eventos**: Records inmutables (ej: `ClientEvent`, `DomainEvent`)
 - **Excepciones**: Errores específicos del dominio
 
 **Características**:
@@ -180,6 +190,42 @@ Cuando un cliente hace un **depósito**, el flujo es:
 ```
 
 **La magia**: El Dominio no sabe que existe HTTP, Spring o PostgreSQL. Solo sabe de "Cuentas", "Movimientos" y "Reglas de Negocio".
+
+### Estructura de Paquetes
+
+La estructura de carpetas refleja explícitamente la dirección de las dependencias:
+
+```
+ms-customer/                          ms-account/
+│                                     │
+├── domain/                           ├── domain/
+│   ├── port/                         │   ├── port/
+│   │   ├── in/         ← Input Ports │   │   ├── in/         ← Input Ports
+│   │   │   └── ClientService         │   │   │   ├── MovementService
+│   │   └── out/        ← Output Ports│   │   │   └── ClientEventHandler
+│   │       ├── ClientRepository      │   │   └── out/        ← Output Ports
+│   │       └── DomainEventPublisher  │   │       ├── AccountRepository
+│   ├── entity/                       │   │       └── MovementRepository
+│   ├── event/                        │   ├── entity/
+│   └── exception/                    │   ├── event/
+│                                      │   └── exception/
+├── application/                      ├── application/
+│   ├── dto/                          │   ├── dto/
+│   ├── mapper/                       │   ├── mapper/
+│   ├── port/                         │   └── service/
+│   │   └── in/                       │
+│   │       └── command/   ← Commands │   ├── infrastructure/
+│   └── service/                      │       ├── rest/
+│                                      │       ├── persistence/
+├── infrastructure/                   │       ├── messaging/
+│   ├── rest/                         │       └── exception/
+│   ├── persistence/                  │
+│   ├── messaging/                    │
+│   ├── config/                       │
+│   └── exception/                    │
+```
+
+**Principio**: `port/in/` contiene lo que el dominio **ofrece** al mundo exterior. `port/out/` contiene lo que el dominio **necesita** del mundo exterior. La capa de aplicación depende de ambos, la infraestructura implementa los `port/out/`.
 
 ---
 
@@ -296,30 +342,40 @@ graph TB
 
 ### C4 - Código (Estructura)
 
-Muestra la estructura de código a nivel de clases.
+Muestra la estructura de código a nivel de clases y la dirección de las dependencias.
 
 ```
 ms-account/
 ├── domain/
+│   ├── port/
+│   │   ├── in/                    ← Input Ports (lo que el dominio ofrece)
+│   │   │   ├── MovementService.java
+│   │   │   └── ClientEventHandler.java
+│   │   └── out/                   ← Output Ports (lo que el dominio necesita)
+│   │       ├── AccountRepository.java
+│   │       └── MovementRepository.java
 │   ├── entity/
-│   │   └── Movement.java          ← Lógica de negocio pura
-│   ├── repository/
-│   │   └── MovementRepository.java ← Interface (Port)
+│   │   ├── Account.java           ← Lógica de negocio pura
+│   │   └── Movement.java
 │   └── exception/
 │       └── InsufficientBalanceException.java
 │
 ├── application/
 │   ├── dto/
 │   │   ├── MovementRequestDto.java
-│   │   └── MovementResponseDto.java
+│   │   ├── MovementResponseDto.java
+│   │   └── TransactionRequestDto.java
 │   ├── mapper/
 │   │   └── MovementApplicationMapper.java
 │   └── service/
-│       └── MovementApplicationService.java
+│       ├── MovementApplicationService.java
+│       └── AccountApplicationService.java
 │
 └── infrastructure/
     ├── rest/
-    │   └── MovementController.java
+    │   ├── MovementController.java
+    │   ├── AccountController.java
+    │   └── ReportController.java
     ├── persistence/
     │   ├── entity/
     │   │   └── MovementJpaEntity.java
@@ -328,6 +384,10 @@ ms-account/
     │   ├── mapper/
     │   │   └── MovementJpaMapper.java
     │   └── MovementRepositoryImpl.java
+    ├── messaging/
+    │   └── RabbitMQConsumer.java
+    ├── config/
+    │   └── RabbitMQConfig.java
     └── exception/
         └── GlobalExceptionHandler.java
 ```
@@ -453,7 +513,69 @@ ms-account/
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🧠 Decisiones de Diseño
+
+### Command Objects
+
+Cada caso de uso recibe un objeto comando específico en lugar de la entidad de dominio directamente:
+
+| Antes | Después |
+|-------|---------|
+| `clientService.createClient(Client client)` | `clientService.createClient(CreateClientCommand command)` |
+| `clientService.updateClient(Client client)` | `clientService.updateClient(UpdateClientCommand command)` |
+
+**Beneficios**:
+- La API del caso de uso no está acoplada a la entidad de dominio
+- El mapper construye la entidad con validaciones internas
+- Los comandos son records inmutables que documentan la entrada esperada
+
+```java
+public record CreateClientCommand(
+    String name, String gender, Integer age,
+    String identification, String address,
+    String phone, String password, Boolean active
+) {}
+```
+
+### Eventos de Dominio
+
+Los eventos usan **records de Java** para garantizar inmutabilidad:
+
+```java
+public record ClientEvent(
+    String eventId, String eventType, Instant occurredOn, String source,
+    Long clientId, String identification,
+    String name, String phone, String address, Boolean active
+) implements DomainEvent { ... }
+```
+
+**Características**:
+- **Factory methods desde entidad**: `ClientEvent.fromCreated(client)` — la construcción del evento vive en el evento, no en el servicio
+- **Sin duplicación de datos**: todos los campos son planos, sin payload redundante
+- **Compact constructor** con validación de campos obligatorios
+- **5 tipos**: `CLIENT_CREATED`, `UPDATED`, `DELETED`, `ACTIVATED`, `DEACTIVATED`
+
+### Comunicación Asíncrona
+
+**ms-customer → RabbitMQ → ms-account**
+
+```
+ms-customer publica CLIENT_CREATED  →  Exchange "customer.events"
+                                    →  Queue "customer.events.queue"
+                                    →  ms-account RabbitMQConsumer
+                                    →  ClientEventHandlerImpl
+                                    →  clientNameCache (ConcurrentHashMap)
+```
+
+ms-account mantiene una **proyección local** (`ConcurrentHashMap<Long, String>`) con los nombres de clientes. Esto evita llamadas HTTP síncronas entre servicios y permite que el reporte F4 resuelva nombres sin acoplamiento.
+
+### Mappers y Validación
+
+- **MapStruct con `unmappedTargetPolicy = ReportingPolicy.ERROR`**: si se agrega un campo nuevo al DTO o la entidad y no se mapea, el proyecto **no compila**
+- **Doble capa de validación**: Bean Validation en DTOs (formato) + validación en constructores de dominio (reglas de negocio)
+- **Default de `active` se maneja explícitamente** en el mapper (no se confía en `defaultValue` de MapStruct que no funciona con constructores)
+
+---
 
 ### Core
 - **Java 17**: Lenguaje moderno con records, pattern matching, mejoras en NullPointer
@@ -487,62 +609,105 @@ ms-account/
 ### 1. 🔍 ms-eureka-server (Port: 8761)
 **Responsabilidad**: Registro y descubrimiento de servicios.
 
+**Stack**: Spring Boot 3.2.0 + Spring Cloud Netflix Eureka Server 4.2.0
+
 **Por qué**: En microservicios, los servicios necesitan encontrarse dinámicamente. Eureka mantiene un registro de qué instancias están disponibles.
 
-### 2. 🚪 ms-gateway (Port: 8080)
-**Responsabilidad**: Punto de entrada único y enrutamiento.
+**Tests**: ✅ 6 tests smoke (contexto, propiedades, standalone mode)
 
-**Flujo**:
-```
-Cliente → Gateway → Eureka → ms-customer/ms-account
-         (encuentra)   (balanceo)
-```
+### 2. 🚪 ms-gateway (Port: 8080)
+**Responsabilidad**: Punto de entrada único, enrutamiento y balanceo de carga.
+
+**Stack**: Spring Cloud Gateway 2023.0.1
 
 **Rutas**:
-- `/api/clients/**` → ms-customer
-- `/api/accounts/**` → ms-account
-- `/api/movements/**` → ms-account
+| Ruta | Destino | ID |
+|------|---------|----|
+| `/api/clients/**` | `lb://ms-customer` | `ms-customer` |
+| `/api/accounts/**` | `lb://ms-account` | `ms-account` |
+| `/api/movements/**` | `lb://ms-account` | `ms-account-movements` |
+
+**Tests**: ✅ 12 tests (contexto, rutas, predicates, Eureka)
 
 ### 3. 👤 ms-customer (Port: 8081)
 **Responsabilidad**: Gestión del ciclo de vida de clientes.
 
-**Funcionalidades**:
-- Crear, leer, actualizar, eliminar clientes
-- Activar/desactivar clientes
-- Publicar eventos cuando un cliente cambia (RabbitMQ)
+**Stack**: Spring Boot 3.2.0, PostgreSQL (schema: customer), RabbitMQ Publisher
 
-**Eventos**:
-- `CLIENTE_CREADO`
-- `CLIENTE_ACTUALIZADO`
-- `CLIENTE_ELIMINADO`
+**Arquitectura**:
+```
+domain/port/in/  ← ClientService (interfaz del caso de uso)
+domain/port/out/ ← ClientRepository, DomainEventPublisher
+```
+
+**Arquitectura Hexagonal**:
+- **Dominio**: `Client` (herencia de `Person`), eventos como records, puertos `in/` y `out/`
+- **Aplicación**: `CreateClientCommand`, `UpdateClientCommand`, `ClientApplicationMapper`
+- **Infraestructura**: REST Controller, JPA, RabbitMQ Event Publisher
+
+**Funcionalidades**:
+- CRUD completo de clientes con validación en doble capa (DTO + Dominio)
+- Activación/desactivación con métodos explícitos (`activate()`/`deactivate()`)
+- Eventos de dominio publicados en RabbitMQ al crear/actualizar/eliminar clientes
+- Documentación API con Swagger/OpenAPI
+
+**Tests**: ✅ **81 tests** (dominio + aplicación)
 
 ### 4. 💰 ms-account (Port: 8082)
-**Responsabilidad**: Gestión de cuentas y movimientos.
+**Responsabilidad**: Gestión de cuentas, movimientos y reportes.
+
+**Stack**: Spring Boot 3.2.0, PostgreSQL (schema: account), RabbitMQ Consumer
+
+**Arquitectura**:
+```
+domain/port/in/  ← MovementService, ClientEventHandler (input ports)
+domain/port/out/ ← AccountRepository, MovementRepository (output ports)
+```
 
 **Funcionalidades**:
-- Crear cuentas (Ahorro/Corriente)
-- Registrar depósitos y retiros (F2)
-- Validar saldo suficiente (F3)
-- Generar reportes por fechas (F4)
+- CRUD de cuentas (Ahorro/Corriente) con validación de tipo y saldo
+- Depósitos y retiros con registro histórico de movimientos (F2)
+- Validación "Saldo no disponible" para sobregiros (F3)
+- Reportes por rango de fechas con nombre de cliente (F4)
+- Consumidor RabbitMQ para eventos de cliente (proyección local con `ConcurrentHashMap`)
 
 **Flujo de Depósito**:
 ```
-1. Validar que la cuenta existe
-2. Validar que está activa
-3. Ejecutar deposito (dominio)
-4. Calcular nuevo balance
-5. Crear registro de movimiento
+1. Recibir MovementRequestDto
+2. Buscar cuenta por número (AccountRepository)
+3. Validar que la cuenta está activa
+4. Ejecutar account.deposit(amount) — dominio puro
+5. Movement.createDeposit() — factory method
 6. Persistir cuenta y movimiento
-7. Retornar datos del movimiento
+7. Retornar MovementResponseDto
 ```
+
+**Tests**: ✅ **153 tests** (dominio + aplicación)
 
 ---
 
 ## 🧪 Tests y Calidad
 
-### Filosofía de Testing
+### Resumen de Cobertura
 
-Seguimos la **Pirámide de Tests**:
+| Tipo | Framework | Cantidad | Tiempo de ejecución |
+|------|-----------|----------|---------------------|
+| **Unitarios (dominio)** — entidades, excepciones | JUnit 5 | ~120 | < 1s |
+| **Unitarios (aplicación)** — servicios con Mockito | JUnit 5 + Mockito | ~80 | < 2s |
+| **Unitarios (infraestructura)** — contexto, rutas | Spring Boot Test | ~46 | < 15s |
+| **Integración API** — end-to-end | Karate Framework | ~60 escenarios | ~30s |
+| **Total** | | **~306** | ~48s |
+
+### Distribución por Microservicio
+
+| Microservicio | Tests | Capas cubiertas |
+|---------------|-------|-----------------|
+| **ms-customer** | **81** | Dominio (entidades, excepciones) + Aplicación (servicios mockeados) |
+| **ms-account** | **153** | Dominio (entidades, excepciones) + Aplicación (servicios mockeados) |
+| **ms-gateway** | **12** | Infraestructura (contexto Spring, rutas, predicates) |
+| **ms-eureka-server** | **6** | Infraestructura (contexto Spring, propiedades) |
+
+### Filosofía de Testing
 
 ```
          /\
@@ -553,36 +718,71 @@ Seguimos la **Pirámide de Tests**:
     /Integration \      ← API Tests
    /______________\
   /                \
- /   Unit Tests     \   ← JUnit (74+ tests)
+ /   Unit Tests     \   ← JUnit (246 tests)
 /____________________\
 ```
 
-### Tests Unitarios (74+)
+### Pirámide Hexagonal
 
-**Ubicación**: Capa de Dominio (pura)
+Los tests siguen la misma arquitectura hexagonal:
 
-**Qué testeamos**:
-- Reglas de negocio (ej: retiro sin saldo → error)
-- Validaciones (ej: tipo de cuenta inválido)
-- Cálculos (ej: balance después de movimiento)
+```
+Tests de Dominio (puros, sin Spring)
+  ├── AccountTest       → 50 tests
+  ├── ClientTest        → 25 tests
+  ├── MovementTest      → 44 tests
+  ├── PersonTest        → 11 tests
+  └── Exception tests   → 30 tests
 
-**Características**:
-- ⚡ Ultra-rápidos (< 1 segundo)
-- 🎯 Aisladas (sin Spring, sin BD)
-- 🔒 Estables (no fallan por cambios en infra)
+Tests de Aplicación (Mockito, sin BD)
+  ├── ClientServiceImplTest     → 22 tests
+  ├── AccountServiceTest        → 20 tests
+  └── MovementApplicationServiceTest → 30 tests
 
-### Tests de Integración (60+ escenarios)
+Tests de Infraestructura (Spring Boot Test)
+  ├── GatewayApplicationTest    → 4 tests
+  ├── GatewayRoutesTest         → 8 tests
+  └── EurekaServerApplicationTest → 6 tests
+```
 
-**Herramienta**: Karate DSL (Gherkin)
+### Características
 
-**Cobertura**:
-- Flujos completos (crear cuenta → depositar → retirar → reporte)
-- Casos de error (404, 400, validaciones)
-- F2: Registro de movimientos
-- F3: Saldo insuficiente
-- F4: Reportes por fechas
+| Tipo | Velocidad | Dependencias | Framework |
+|------|-----------|--------------|-----------|
+| Dominio | ⚡ < 1s | Ninguna (JDK puro) | JUnit 5 |
+| Aplicación | ⚡ < 2s | Mockito (sin BD, sin Spring) | JUnit 5 + Mockito |
+| Infraestructura | 🟡 < 15s | Spring Context | Spring Boot Test |
+| Integración | 🟡 ~30s | Todos los servicios | Karate DSL |
 
-**Ejemplo de escenario**:
+### Patrones de Testing
+
+**Tests de Dominio** — sin Spring, sin BD:
+```java
+@Test
+void shouldRejectWithdrawalWhenInsufficientBalance() {
+    Account account = new Account("478758", "Ahorro", BigDecimal.ZERO, true, 1L);
+    assertThrows(InsufficientBalanceException.class, () -> account.withdraw(new BigDecimal("100")));
+}
+```
+
+**Tests de Aplicación** — con Mockito:
+```java
+@ExtendWith(MockitoExtension.class)
+class AccountServiceTest {
+    @Mock AccountRepository accountRepository;
+    @Mock AccountApplicationMapper accountMapper;
+
+    @Test
+    void shouldCreateAccountSuccessfully() {
+        when(accountRepository.existsByAccountNumber("478758")).thenReturn(false);
+        when(accountMapper.toDomain(requestDto)).thenReturn(account);
+        when(accountRepository.save(account)).thenReturn(account);
+        // ...
+    }
+}
+```
+
+**Tests de Integración Karate** — DSL declarativo:
 ```gherkin
 Escenario: F3 - Retiro rechazado por saldo insuficiente
   Dado que existe una cuenta con saldo 0

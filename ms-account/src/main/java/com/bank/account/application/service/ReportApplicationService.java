@@ -3,8 +3,8 @@ package com.bank.account.application.service;
 import com.bank.account.application.dto.StatementLineDto;
 import com.bank.account.domain.entity.Account;
 import com.bank.account.domain.entity.Movement;
-import com.bank.account.domain.repository.AccountRepository;
-import com.bank.account.domain.repository.MovementRepository;
+import com.bank.account.domain.port.out.AccountRepository;
+import com.bank.account.domain.port.out.MovementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
