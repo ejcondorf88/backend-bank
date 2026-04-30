@@ -2,8 +2,14 @@ package com.bank.customer.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 
-@MappedSuperclass
-public abstract class PersonJpaEntity {
+/**
+ * Entidad JPA para Persona.
+ * Tabla separada de Client. Se relacionan via @OneToOne.
+ * Contiene los datos personales basicos: nombre, genero, edad, identificacion, direccion, telefono.
+ */
+@Entity
+@Table(name = "persons", schema = "customer")
+public class PersonJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "person_seq")
@@ -28,6 +34,8 @@ public abstract class PersonJpaEntity {
 
     @Column(name = "phone", length = 20)
     private String phone;
+
+    public PersonJpaEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
