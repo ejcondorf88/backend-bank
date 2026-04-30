@@ -201,10 +201,7 @@ public class AccountController {
             @Parameter(description = "Numero de cuenta", example = "478758", required = true)
             @PathVariable String accountNumber,
             @Valid @RequestBody TransactionRequestDto requestDto) {
-        // Ensure account number matches
-        if (!accountNumber.equals(requestDto.getAccountNumber())) {
-            return ResponseEntity.badRequest().build();
-        }
+        requestDto.setAccountNumber(accountNumber);
         AccountResponseDto responseDto = accountService.deposit(requestDto);
         return ResponseEntity.ok(responseDto);
     }
@@ -225,10 +222,7 @@ public class AccountController {
             @Parameter(description = "Numero de cuenta", example = "478758", required = true)
             @PathVariable String accountNumber,
             @Valid @RequestBody TransactionRequestDto requestDto) {
-        // Ensure account number matches
-        if (!accountNumber.equals(requestDto.getAccountNumber())) {
-            return ResponseEntity.badRequest().build();
-        }
+        requestDto.setAccountNumber(accountNumber);
         AccountResponseDto responseDto = accountService.withdraw(requestDto);
         return ResponseEntity.ok(responseDto);
     }

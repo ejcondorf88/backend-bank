@@ -11,8 +11,7 @@ import java.math.BigDecimal;
 @Schema(description = "DTO para solicitudes de transacciones (deposito/retiro)")
 public class TransactionRequestDto {
 
-    @Schema(description = "Numero de cuenta para la transaccion", example = "478758")
-    @NotBlank(message = "Account number is required")
+    @Schema(description = "Numero de cuenta para la transaccion (se obtiene del path, no es necesario en el body)", example = "478758")
     private String accountNumber;
 
     @Schema(description = "Monto de la transaccion (debe ser positivo)", example = "100.00")
