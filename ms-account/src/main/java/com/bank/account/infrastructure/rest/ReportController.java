@@ -15,14 +15,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Controlador REST para el reporte de Estado de Cuenta (F4).
+ * REST Controller for the Account Statement report (F4).
  *
- * <p>Implementa el endpoint exacto requerido por el enunciado:
+ * <p>Implements the endpoint required by the F4 functionality:
  * <pre>
- *   GET /reportes?fecha=rango fechas
+ *   GET /reports?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd&clientId=X
  * </pre>
  *
- * <p>Respuesta JSON — una línea por movimiento en el periodo:
+ * <p>JSON response — one line per movement in the period:
  * <pre>
  * [
  *   {
@@ -39,8 +39,8 @@ import java.util.List;
  * </pre>
  */
 @RestController
-@RequestMapping("/reportes")
-@Tag(name = "Reportes", description = "Reporte de Estado de Cuenta (F4) - filtrado por fecha y cliente")
+@RequestMapping("/reports")
+@Tag(name = "Reports", description = "Account Statement Report (F4) - filtered by date and client")
 public class ReportController {
 
     private final ReportApplicationService reportService;
@@ -50,65 +50,62 @@ public class ReportController {
     }
 
     /**
-     * Genera el reporte de estado de cuenta para un cliente en un rango de fechas.
+     * Generates the account statement report for a client within a date range.
      *
-     * <p>Endpoint principal del enunciado F4:
-     * {@code GET /reportes?fechaInicio=yyyy-MM-dd&fechaFin=yyyy-MM-dd&clienteId=X}
-     *
-     * <p>Alias: también acepta el parámetro {@code fecha} como "fechaInicio" para
-     * compatibilidad con el formato del enunciado ({@code /reportes?fecha=rango fechas}).
+     * <p>Endpoint for F4 requirement:
+     * {@code GET /reportes?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd&clientId=X}
      */
     @Operation(
-            summary = "Reporte de Estado de Cuenta por cliente y rango de fechas (F4)",
-            description = "Genera un reporte detallado con cuentas y movimientos de un cliente " +
-                    "en un rango de fechas. Una línea JSON por cada movimiento registrado. " +
-                    "El nombre del cliente se resuelve desde la proyección local de eventos RabbitMQ."
+            summary = "Account Statement Report by client and date range (F4)",
+            description = "Generates a detailed report with accounts and movements for a client " +
+                    "in a date range. Returns one JSON line per recorded movement. " +
+                    "Client name is resolved from local event projections."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Reporte generado exitosamente",
+            @ApiResponse(responseCode = "200", description = "Report generated successfully",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = StatementLineDto.class))),
-            @ApiResponse(responseCode = "400", description = "Formato de fecha inválido (usar yyyy-MM-dd)"),
-            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+            @ApiResponse(responseCode = "400", description = "Invalid date format (use yyyy-MM-dd)"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping
     public ResponseEntity<List<StatementLineDto>> getStatementReport(
-            @Parameter(description = "ID del cliente", example = "1", required = true)
-            @RequestParam Long clienteId,
+            @Parameter(description = "Unique ID of the client", example = "1", required = true)
+            @RequestParam(name = "clientId") Long clientId,
 
-            @Parameter(description = "Fecha inicio del periodo (yyyy-MM-dd)", example = "2022-01-01", required = true)
-            @RequestParam String fechaInicio,
+            @Parameter(description = "Range start date (yyyy-MM-dd)", example = "2022-01-01", required = true)
+            @RequestParam(name = "startDate") String startDate,
 
-            @Parameter(description = "Fecha fin del periodo (yyyy-MM-dd)", example = "2022-12-31", required = true)
-            @RequestParam String fechaFin) {
+            @Parameter(description = "Range end date (yyyy-MM-dd)", example = "2022-12-31", required = true)
+            @RequestParam(name = "endDate") String endDate) {
 
-        List<StatementLineDto> report = reportService.generateReport(clienteId, fechaInicio, fechaFin);
+        List<StatementLineDto> report = reportService.generateReport(clientId, startDate, endDate);
         return ResponseEntity.ok(report);
     }
 
     /**
-     * Reporte global — todos los movimientos en un rango de fechas (sin filtro de cliente).
-     * Útil para administración o auditoría.
+     * Global report — all movements in a date range (no client filter).
+     * Useful for auditing.
      *
-     * <p>Endpoint: {@code GET /reportes/global?fechaInicio=yyyy-MM-dd&fechaFin=yyyy-MM-dd}
+     * <p>Endpoint: {@code GET /reportes/global?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd}
      */
     @Operation(
-            summary = "Reporte global de movimientos por rango de fechas",
-            description = "Genera un reporte de todos los movimientos en un periodo de tiempo, " +
-                    "sin filtrar por cliente. Útil para administración."
+            summary = "Global movement report by date range",
+            description = "Generates a report of all movements in a period, " +
+                    "without filtering by client. Useful for administration."
     )
-    @ApiResponse(responseCode = "200", description = "Reporte global generado",
+    @ApiResponse(responseCode = "200", description = "Global report generated",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = StatementLineDto.class)))
     @GetMapping("/global")
     public ResponseEntity<List<StatementLineDto>> getGlobalReport(
-            @Parameter(description = "Fecha inicio (yyyy-MM-dd)", example = "2022-01-01", required = true)
-            @RequestParam String fechaInicio,
+            @Parameter(description = "Range start date (yyyy-MM-dd)", example = "2022-01-01", required = true)
+            @RequestParam(name = "startDate") String startDate,
 
-            @Parameter(description = "Fecha fin (yyyy-MM-dd)", example = "2022-12-31", required = true)
-            @RequestParam String fechaFin) {
+            @Parameter(description = "Range end date (yyyy-MM-dd)", example = "2022-12-31", required = true)
+            @RequestParam(name = "endDate") String endDate) {
 
-        List<StatementLineDto> report = reportService.generateGlobalReport(fechaInicio, fechaFin);
+        List<StatementLineDto> report = reportService.generateGlobalReport(startDate, endDate);
         return ResponseEntity.ok(report);
     }
 }

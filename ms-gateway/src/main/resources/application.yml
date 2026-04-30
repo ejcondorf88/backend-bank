@@ -26,7 +26,7 @@ spring:
         - id: ms-account-reports
           uri: lb://ms-account
           predicates:
-            - Path=/reportes/**
+            - Path=/reports/**
         # OpenApi Aggregation Routes
         - id: ms-customer-openapi
           uri: lb://ms-customer

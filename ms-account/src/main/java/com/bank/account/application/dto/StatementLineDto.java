@@ -1,138 +1,81 @@
 package com.bank.account.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * DTO para cada línea del reporte de estado de cuenta (F4).
- *
- * <p>Formato JSON exacto requerido por el enunciado:
- * <pre>
- * {
- *   "Fecha": "10/2/2022",
- *   "Cliente": "Marianela Montalvo",
- *   "Numero Cuenta": "225487",
- *   "Tipo": "Corriente",
- *   "Saldo Inicial": 100,
- *   "Estado": true,
- *   "Movimiento": 600,
- *   "Saldo Disponible": 700
- * }
- * </pre>
- *
- * <p>Una línea por cada movimiento de cada cuenta del cliente.
- * Si una cuenta no tiene movimientos en el rango, igual aparece
- * con los campos de movimiento en null.
+ * DTO for each line of the Account Statement report (F4).
+ * Completely in English.
  */
-@Schema(description = "DTO que representa una linea detallada del reporte de estado de cuenta")
+@Schema(description = "DTO representing a detailed line of the account statement report")
 public class StatementLineDto {
 
-    /**
-     * Fecha y hora del movimiento.
-     */
-    @Schema(description = "Fecha del movimiento", example = "2022-02-10T00:00:00")
-    @JsonProperty("Fecha")
-    private LocalDateTime fecha;
+    @Schema(description = "Transaction date", example = "2022-02-10T00:00:00")
+    private LocalDateTime date;
 
-    /**
-     * Nombre del cliente propietario de la cuenta.
-     * Se resuelve desde la proyección local de eventos de ms-customer.
-     */
-    @Schema(description = "Nombre completo del cliente", example = "Marianela Montalvo")
-    @JsonProperty("Cliente")
-    private String cliente;
+    @Schema(description = "Full name of the client", example = "Marianela Montalvo")
+    private String clientName;
 
-    /**
-     * Número de la cuenta bancaria.
-     */
-    @Schema(description = "Numero de cuenta", example = "225487")
-    @JsonProperty("Numero Cuenta")
-    private String numeroCuenta;
+    @Schema(description = "Account number", example = "225487")
+    private String accountNumber;
 
-    /**
-     * Tipo de cuenta: "Ahorro" o "Corriente".
-     */
-    @Schema(description = "Tipo de cuenta", example = "Corriente")
-    @JsonProperty("Tipo")
-    private String tipo;
+    @Schema(description = "Account type", example = "Savings")
+    private String accountType;
 
-    /**
-     * Saldo de la cuenta ANTES del movimiento.
-     * Calculado como: saldoDisponible - movimiento.
-     */
-    @Schema(description = "Saldo inicial antes del movimiento", example = "100.00")
-    @JsonProperty("Saldo Inicial")
-    private BigDecimal saldoInicial;
+    @Schema(description = "Initial balance before the movement", example = "100.00")
+    private BigDecimal initialBalance;
 
-    /**
-     * Estado de la cuenta: true=activa, false=inactiva.
-     */
-    @Schema(description = "Estado actual de la cuenta", example = "true")
-    @JsonProperty("Estado")
-    private Boolean estado;
+    @Schema(description = "Current account status", example = "true")
+    private Boolean active;
 
-    /**
-     * Valor del movimiento.
-     * Positivo para depósitos, negativo para retiros.
-     */
-    @Schema(description = "Monto del movimiento realizado", example = "600.00")
-    @JsonProperty("Movimiento")
-    private BigDecimal movimiento;
+    @Schema(description = "Movement amount", example = "600.00")
+    private BigDecimal movementAmount;
 
-    /**
-     * Saldo disponible de la cuenta DESPUÉS del movimiento.
-     */
-    @Schema(description = "Saldo final despues del movimiento", example = "700.00")
-    @JsonProperty("Saldo Disponible")
-    private BigDecimal saldoDisponible;
+    @Schema(description = "Available balance after the movement", example = "700.00")
+    private BigDecimal availableBalance;
 
     // ==================== Constructors ====================
 
     public StatementLineDto() {
     }
 
-    /**
-     * Constructor completo para una línea con movimiento.
-     */
-    public StatementLineDto(LocalDateTime fecha, String cliente, String numeroCuenta,
-                            String tipo, BigDecimal saldoInicial, Boolean estado,
-                            BigDecimal movimiento, BigDecimal saldoDisponible) {
-        this.fecha = fecha;
-        this.cliente = cliente;
-        this.numeroCuenta = numeroCuenta;
-        this.tipo = tipo;
-        this.saldoInicial = saldoInicial;
-        this.estado = estado;
-        this.movimiento = movimiento;
-        this.saldoDisponible = saldoDisponible;
+    public StatementLineDto(LocalDateTime date, String clientName, String accountNumber,
+                            String accountType, BigDecimal initialBalance, Boolean active,
+                            BigDecimal movementAmount, BigDecimal availableBalance) {
+        this.date = date;
+        this.clientName = clientName;
+        this.accountNumber = accountNumber;
+        this.accountType = accountType;
+        this.initialBalance = initialBalance;
+        this.active = active;
+        this.movementAmount = movementAmount;
+        this.availableBalance = availableBalance;
     }
 
     // ==================== Getters & Setters ====================
 
-    public LocalDateTime getFecha() { return fecha; }
-    public void setFecha(LocalDateTime fecha) { this.fecha = fecha; }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
 
-    public String getCliente() { return cliente; }
-    public void setCliente(String cliente) { this.cliente = cliente; }
+    public String getClientName() { return clientName; }
+    public void setClientName(String clientName) { this.clientName = clientName; }
 
-    public String getNumeroCuenta() { return numeroCuenta; }
-    public void setNumeroCuenta(String numeroCuenta) { this.numeroCuenta = numeroCuenta; }
+    public String getAccountNumber() { return accountNumber; }
+    public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
+    public String getAccountType() { return accountType; }
+    public void setAccountType(String accountType) { this.accountType = accountType; }
 
-    public BigDecimal getSaldoInicial() { return saldoInicial; }
-    public void setSaldoInicial(BigDecimal saldoInicial) { this.saldoInicial = saldoInicial; }
+    public BigDecimal getInitialBalance() { return initialBalance; }
+    public void setInitialBalance(BigDecimal initialBalance) { this.initialBalance = initialBalance; }
 
-    public Boolean getEstado() { return estado; }
-    public void setEstado(Boolean estado) { this.estado = estado; }
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 
-    public BigDecimal getMovimiento() { return movimiento; }
-    public void setMovimiento(BigDecimal movimiento) { this.movimiento = movimiento; }
+    public BigDecimal getMovementAmount() { return movementAmount; }
+    public void setMovementAmount(BigDecimal movementAmount) { this.movementAmount = movementAmount; }
 
-    public BigDecimal getSaldoDisponible() { return saldoDisponible; }
-    public void setSaldoDisponible(BigDecimal saldoDisponible) { this.saldoDisponible = saldoDisponible; }
+    public BigDecimal getAvailableBalance() { return availableBalance; }
+    public void setAvailableBalance(BigDecimal availableBalance) { this.availableBalance = availableBalance; }
 }
