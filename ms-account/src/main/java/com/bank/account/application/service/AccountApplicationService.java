@@ -4,14 +4,19 @@ import com.bank.account.application.dto.AccountRequestDto;
 import com.bank.account.application.dto.AccountResponseDto;
 import com.bank.account.application.dto.TransactionRequestDto;
 import com.bank.account.application.mapper.AccountApplicationMapper;
+import com.bank.account.application.mapper.MovementApplicationMapper;
 import com.bank.account.domain.entity.Account;
+import com.bank.account.domain.entity.Movement;
 import com.bank.account.domain.exception.AccountAlreadyExistsException;
 import com.bank.account.domain.exception.AccountNotFoundException;
+import com.bank.account.domain.exception.ClientNotFoundException;
 import com.bank.account.domain.port.out.AccountRepository;
+import com.bank.account.domain.port.out.MovementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,14 +30,29 @@ public class AccountApplicationService {
 
     private final AccountRepository accountRepository;
     private final AccountApplicationMapper accountMapper;
+    private final MovementRepository movementRepository;
+    private final MovementApplicationMapper movementMapper;
+    private final Map<Long, String> clientNameCache;
 
-    public AccountApplicationService(AccountRepository accountRepository, AccountApplicationMapper accountMapper) {
+    public AccountApplicationService(AccountRepository accountRepository, 
+                                     AccountApplicationMapper accountMapper,
+                                     MovementRepository movementRepository,
+                                     MovementApplicationMapper movementMapper,
+                                     Map<Long, String> clientNameCache) {
         this.accountRepository = accountRepository;
         this.accountMapper = accountMapper;
+        this.movementRepository = movementRepository;
+        this.movementMapper = movementMapper;
+        this.clientNameCache = clientNameCache;
     }
 
     @Transactional
     public AccountResponseDto createAccount(AccountRequestDto requestDto) {
+        // Validar que el cliente exista en la proyección local (Integridad Microservicios)
+        if (!clientNameCache.containsKey(requestDto.getClientId())) {
+            throw new ClientNotFoundException(requestDto.getClientId());
+        }
+
         // Check if account number already exists
         if (accountRepository.existsByAccountNumber(requestDto.getAccountNumber())) {
             throw new AccountAlreadyExistsException(requestDto.getAccountNumber());
@@ -132,6 +152,16 @@ public class AccountApplicationService {
 
         account.deposit(requestDto.getAmount());
         Account savedAccount = accountRepository.save(account);
+        
+        // Registrar movimiento de auditoría
+        Movement movement = movementMapper.fromTransaction(
+                account.getAccountNumber(), 
+                "Deposito", 
+                requestDto.getAmount(), 
+                account.getBalance()
+        );
+        movementRepository.save(movement);
+
         return accountMapper.toResponseDto(savedAccount);
     }
 
@@ -142,6 +172,16 @@ public class AccountApplicationService {
 
         account.withdraw(requestDto.getAmount());
         Account savedAccount = accountRepository.save(account);
+
+        // Registrar movimiento de auditoría
+        Movement movement = movementMapper.fromTransaction(
+                account.getAccountNumber(), 
+                "Retiro", 
+                requestDto.getAmount(), 
+                account.getBalance()
+        );
+        movementRepository.save(movement);
+        
         return accountMapper.toResponseDto(savedAccount);
     }
 }

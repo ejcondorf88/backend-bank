@@ -30,7 +30,7 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.queue.customer.name:customer.events.queue}")
     private String customerQueueName;
 
-    @Value("${rabbitmq.exchange.customer.name:customer.exchange}")
+    @Value("${rabbitmq.exchange.customer.name:customer.events}")
     private String customerExchangeName;
 
     // ==================== Shared Client Name Cache ====================
@@ -55,7 +55,9 @@ public class RabbitMQConfig {
      */
     @Bean
     public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        return new Jackson2JsonMessageConverter(objectMapper);
     }
 
     /**

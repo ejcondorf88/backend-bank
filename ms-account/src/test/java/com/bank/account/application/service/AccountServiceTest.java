@@ -7,9 +7,12 @@ import com.bank.account.application.mapper.AccountApplicationMapper;
 import com.bank.account.domain.entity.Account;
 import com.bank.account.domain.exception.AccountAlreadyExistsException;
 import com.bank.account.domain.exception.AccountNotFoundException;
+import com.bank.account.domain.exception.ClientNotFoundException;
 import com.bank.account.domain.exception.InsufficientBalanceException;
 import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.port.out.AccountRepository;
+import com.bank.account.domain.port.out.MovementRepository;
+import com.bank.account.application.mapper.MovementApplicationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,10 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,6 +43,15 @@ class AccountServiceTest {
     @Mock
     private AccountApplicationMapper accountMapper;
 
+    @Mock
+    private MovementRepository movementRepository;
+
+    @Mock
+    private MovementApplicationMapper movementMapper;
+
+    @Mock
+    private Map<Long, String> clientNameCache;
+
     private AccountApplicationService accountService;
 
     private Account account;
@@ -51,7 +60,13 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountApplicationService(accountRepository, accountMapper);
+        accountService = new AccountApplicationService(
+                accountRepository, 
+                accountMapper, 
+                movementRepository, 
+                movementMapper,
+                clientNameCache
+        );
 
         account = new Account("478758", "Ahorro", new BigDecimal("2000.00"), true, 1L);
         account.setId(1L);
@@ -66,6 +81,7 @@ class AccountServiceTest {
     @Test
     @DisplayName("Should create account successfully")
     void shouldCreateAccountSuccessfully() {
+        when(clientNameCache.containsKey(1L)).thenReturn(true);
         when(accountRepository.existsByAccountNumber("478758")).thenReturn(false);
         when(accountMapper.toDomain(requestDto)).thenReturn(account);
         when(accountRepository.save(account)).thenReturn(account);
@@ -83,8 +99,19 @@ class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when creating account for non-existing client")
+    void shouldThrowExceptionWhenCreatingAccountForNonExistingClient() {
+        when(clientNameCache.containsKey(1L)).thenReturn(false);
+
+        assertThrows(ClientNotFoundException.class,
+                () -> accountService.createAccount(requestDto));
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Should throw exception when creating account with duplicate number")
     void shouldThrowExceptionWhenCreatingAccountWithDuplicateNumber() {
+        when(clientNameCache.containsKey(1L)).thenReturn(true);
         when(accountRepository.existsByAccountNumber("478758")).thenReturn(true);
 
         assertThrows(AccountAlreadyExistsException.class,
@@ -250,12 +277,14 @@ class AccountServiceTest {
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(account));
         when(accountRepository.save(account)).thenReturn(account);
         when(accountMapper.toResponseDto(account)).thenReturn(responseDto);
+        when(movementMapper.fromTransaction(anyString(), anyString(), any(), any())).thenReturn(mock(com.bank.account.domain.entity.Movement.class));
 
         AccountResponseDto result = accountService.deposit(txnRequest);
 
         assertNotNull(result);
         assertEquals(0, new BigDecimal("2500.00").compareTo(account.getBalance()));
         verify(accountRepository).save(account);
+        verify(movementRepository).save(any());
     }
 
     @Test
@@ -290,12 +319,14 @@ class AccountServiceTest {
         when(accountRepository.findByAccountNumber("478758")).thenReturn(Optional.of(account));
         when(accountRepository.save(account)).thenReturn(account);
         when(accountMapper.toResponseDto(account)).thenReturn(responseDto);
+        when(movementMapper.fromTransaction(anyString(), anyString(), any(), any())).thenReturn(mock(com.bank.account.domain.entity.Movement.class));
 
         AccountResponseDto result = accountService.withdraw(txnRequest);
 
         assertNotNull(result);
         assertEquals(0, new BigDecimal("1500.00").compareTo(account.getBalance()));
         verify(accountRepository).save(account);
+        verify(movementRepository).save(any());
     }
 
     @Test

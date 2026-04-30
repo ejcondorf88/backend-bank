@@ -40,6 +40,7 @@
 - [Microservicios](#microservicios)
 - [Tests y Calidad](#tests-y-calidad)
 - [Docker Compose](#docker-compose)
+- [Infraestructura (Terraform)](#infraestructura-terraform)
 - [Integraciones Futuras](#integraciones-futuras)
 - [Valor Agregado](#valor-agregado)
 
@@ -836,6 +837,30 @@ docker-compose down
 # Reconstruir imágenes
 docker-compose up -d --build
 ```
+
+---
+
+## 🌐 Infraestructura (Terraform)
+
+El sistema está preparado para ser desplegado de forma automática en **AWS** utilizando **Terraform**. Esto permite garantizar que el entorno de producción sea idéntico al de desarrollo.
+
+### Recursos Creados
+*   **VPC & Networking**: Red privada virtual con subredes públicas.
+*   **EC2 Instance**: Servidor Amazon Linux 2 optimizado para contenedores.
+*   **Security Groups**: Reglas de firewall para permitir tráfico en el puerto `8080` (Gateway) y `22` (SSH).
+
+### Despliegue en AWS
+Para desplegar la infraestructura, navega a la carpeta de AWS y ejecuta los comandos de Terraform:
+
+```bash
+cd aws
+terraform init
+terraform plan
+terraform apply -auto-approve
+```
+
+> [!TIP]
+> El archivo `user_data.sh` se encarga de instalar Docker y levantar automáticamente el `docker-compose.yml` al iniciar la instancia, logrando un despliegue **Zero-Touch**.
 
 ---
 

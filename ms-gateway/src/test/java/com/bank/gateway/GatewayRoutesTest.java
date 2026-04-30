@@ -39,13 +39,13 @@ class GatewayRoutesTest {
     }
 
     @Test
-    @DisplayName("Debe tener definidas exactamente 3 rutas")
-    void shouldHaveThreeRoutes() {
+    @DisplayName("Debe tener definidas exactamente 6 rutas")
+    void shouldHaveSixRoutes() {
         List<RouteDefinition> routes = getRoutes();
 
         assertThat(routes)
-                .as("Deben existir 3 rutas: ms-customer, ms-account, ms-account-movements")
-                .hasSize(3);
+                .as("Deben existir 6 rutas: ms-customer, ms-account, ms-account-movements, ms-account-reports, ms-customer-openapi, ms-account-openapi")
+                .hasSize(6);
     }
 
     @Test

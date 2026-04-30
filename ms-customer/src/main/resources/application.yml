@@ -14,23 +14,30 @@ spring:
   config:
     import: optional:file:.env[.properties]
   datasource:
-    # PostgreSQL local (Docker)
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/bankdb?currentSchema=customer}
+    # PostgreSQL Railway
+    url: ${DATABASE_URL:jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=customer&sslmode=require}
     driver-class-name: org.postgresql.Driver
     username: ${DATABASE_USER:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    password: ${DATABASE_PASSWORD:aJrCigJkyYokNwRvpRggQKpaXkDXbduK}
     hikari:
       schema: ${DATABASE_SCHEMA:customer}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     default_schema: customer
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         default_schema: ${DATABASE_SCHEMA:customer}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    template:
+      mandatory: true
 
 # Eureka local activo
 eureka:
@@ -42,12 +49,8 @@ eureka:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
 
-# RabbitMQ local
+# Configuracion de Negocio para RabbitMQ (Exchanges/Queues)
 rabbitmq:
-  host: ${RABBITMQ_HOST:localhost}
-  port: ${RABBITMQ_PORT:5672}
-  username: ${RABBITMQ_USER:guest}
-  password: ${RABBITMQ_PASSWORD:guest}
   exchange:
     customer:
       name: customer.events
@@ -68,26 +71,6 @@ management:
   endpoint:
     health:
       show-details: always
-
-# Swagger/OpenAPI
-springdoc:
-  api-docs:
-    path: /api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operationsSorter: method
-    tagsSorter: alpha
-    tryItOutEnabled: true
-    filter: true
-  info:
-    title: Customer Service API
-    description: API REST para gestion de clientes
-    version: ${APP_VERSION:1.0.0}
-    contact:
-      name: Bank Development Team
-      email: dev@bank.com
 
 # Logging detallado para desarrollo
 logging:

@@ -1,0 +1,6 @@
+aws_region    = "us-east-1"
+instance_type = "t3.small"
+instance_name = "example-instance"
+ami_id        = "ami-xxxxxxxxxxxxxxxxx"
+repo_url      = "https://github.com/org/project.git"
+repo_branch   = "main"

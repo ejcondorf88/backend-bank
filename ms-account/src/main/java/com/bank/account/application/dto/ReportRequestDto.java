@@ -14,34 +14,34 @@ public class ReportRequestDto {
 
     @NotNull(message = "Start date is required")
     @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Start date must be in format yyyy-MM-dd")
-    private String fechaInicio;
+    private String startDate;
 
     @NotNull(message = "End date is required")
     @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "End date must be in format yyyy-MM-dd")
-    private String fechaFin;
+    private String endDate;
 
     // Default constructor
     public ReportRequestDto() {
     }
 
     // Constructor with all fields
-    public ReportRequestDto(String fechaInicio, String fechaFin) {
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+    public ReportRequestDto(String startDate, String endDate) {
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
 
     // Constructor with client
-    public ReportRequestDto(Long clientId, String fechaInicio, String fechaFin) {
+    public ReportRequestDto(Long clientId, String startDate, String endDate) {
         this.clientId = clientId;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
 
     // Constructor with account
-    public ReportRequestDto(String accountNumber, String fechaInicio, String fechaFin) {
+    public ReportRequestDto(String accountNumber, String startDate, String endDate) {
         this.accountNumber = accountNumber;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
 
     // Getters and Setters
@@ -61,20 +61,20 @@ public class ReportRequestDto {
         this.accountNumber = accountNumber;
     }
 
-    public String getFechaInicio() {
-        return fechaInicio;
+    public String getStartDate() {
+        return startDate;
     }
 
-    public void setFechaInicio(String fechaInicio) {
-        this.fechaInicio = fechaInicio;
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
     }
 
-    public String getFechaFin() {
-        return fechaFin;
+    public String getEndDate() {
+        return endDate;
     }
 
-    public void setFechaFin(String fechaFin) {
-        this.fechaFin = fechaFin;
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
     }
 
     @Override
@@ -82,8 +82,8 @@ public class ReportRequestDto {
         return "ReportRequestDto{" +
                 "clientId=" + clientId +
                 ", accountNumber='" + accountNumber + '\'' +
-                ", fechaInicio='" + fechaInicio + '\'' +
-                ", fechaFin='" + fechaFin + '\'' +
+                ", startDate='" + startDate + '\'' +
+                ", endDate='" + endDate + '\'' +
                 '}';
     }
 }

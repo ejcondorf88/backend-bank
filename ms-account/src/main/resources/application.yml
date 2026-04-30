@@ -5,12 +5,12 @@ spring:
   application:
     name: ms-account
   datasource:
-    url: jdbc:postgresql://localhost:5432/bankdb?currentSchema=account
+    url: ${DATABASE_URL:jdbc:postgresql://switchback.proxy.rlwy.net:33642/railway?currentSchema=account&sslmode=require}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:aJrCigJkyYokNwRvpRggQKpaXkDXbduK}
     hikari:
-      schema: account
+      schema: ${DATABASE_SCHEMA:account}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
