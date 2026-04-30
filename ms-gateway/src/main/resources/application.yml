@@ -23,6 +23,10 @@ spring:
           uri: lb://ms-account
           predicates:
             - Path=/api/movements/**
+        - id: ms-account-reports
+          uri: lb://ms-account
+          predicates:
+            - Path=/reportes/**
 
 eureka:
   client:
