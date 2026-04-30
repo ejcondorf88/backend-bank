@@ -1,0 +1,183 @@
+{
+	"info": {
+		"_postman_id": "full-backend-bank-v2",
+		"name": "Backend Bank API - COMPLETE Senior Collection",
+		"description": "Full collection for testing all microservices endpoints via API Gateway. Covers CRUDs, Transactions, and English Reports.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "01. Clients CRUD",
+			"item": [
+				{
+					"name": "Create Client",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Jose Lema\",\n  \"gender\": \"Masculino\",\n  \"age\": 32,\n  \"identification\": \"1234567890\",\n  \"address\": \"Otavalo y Amazonas\",\n  \"phone\": \"098254785\",\n  \"password\": \"1234\",\n  \"active\": true\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseUrl}}/api/clients", "host": ["{{baseUrl}}"], "path": ["api", "clients"] }
+					}
+				},
+				{
+					"name": "Get All Clients",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/api/clients", "host": ["{{baseUrl}}"], "path": ["api", "clients"] }
+					}
+				},
+				{
+					"name": "Get Client by ID",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/api/clients/1", "host": ["{{baseUrl}}"], "path": ["api", "clients", "1"] }
+					}
+				},
+				{
+					"name": "Update Client",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Jose Lema Updated\",\n  \"gender\": \"Masculino\",\n  \"age\": 33,\n  \"identification\": \"1234567890\",\n  \"address\": \"Nuevas Amazonas\",\n  \"phone\": \"099999999\",\n  \"password\": \"5678\",\n  \"active\": true\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseUrl}}/api/clients/1", "host": ["{{baseUrl}}"], "path": ["api", "clients", "1"] }
+					}
+				},
+				{
+					"name": "Delete Client",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/api/clients/1", "host": ["{{baseUrl}}"], "path": ["api", "clients", "1"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "02. Accounts CRUD",
+			"item": [
+				{
+					"name": "Create Account",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountNumber\": \"478758\",\n  \"accountType\": \"Ahorro\",\n  \"initialBalance\": 2000,\n  \"active\": true,\n  \"clientId\": 1\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseUrl}}/api/accounts", "host": ["{{baseUrl}}"], "path": ["api", "accounts"] }
+					}
+				},
+				{
+					"name": "Get All Accounts",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/api/accounts", "host": ["{{baseUrl}}"], "path": ["api", "accounts"] }
+					}
+				},
+				{
+					"name": "Get Account by Number",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/api/accounts/478758", "host": ["{{baseUrl}}"], "path": ["api", "accounts", "478758"] }
+					}
+				},
+				{
+					"name": "Deactivate Account",
+					"request": {
+						"method": "PATCH",
+						"url": { "raw": "{{baseUrl}}/api/accounts/478758/deactivate", "host": ["{{baseUrl}}"], "path": ["api", "accounts", "478758", "deactivate"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "03. Transactions (Deposit/Withdraw)",
+			"item": [
+				{
+					"name": "Deposit Money",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 100\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseUrl}}/api/accounts/478758/deposit", "host": ["{{baseUrl}}"], "path": ["api", "accounts", "478758", "deposit"] }
+					}
+				},
+				{
+					"name": "Withdraw Money",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 500\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": { "raw": "{{baseUrl}}/api/accounts/478758/withdraw", "host": ["{{baseUrl}}"], "path": ["api", "accounts", "478758", "withdraw"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "04. Movements History",
+			"item": [
+				{
+					"name": "Get All Movements",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/api/movements", "host": ["{{baseUrl}}"], "path": ["api", "movements"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "05. Reports (English)",
+			"item": [
+				{
+					"name": "Account Statement (F4)",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/reports?clientId=1&startDate=2024-01-01&endDate=2026-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["reports"],
+							"query": [
+								{ "key": "clientId", "value": "1" },
+								{ "key": "startDate", "value": "2024-01-01" },
+								{ "key": "endDate", "value": "2026-12-31" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Global Report",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/reports/global?startDate=2024-01-01&endDate=2026-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["reports", "global"],
+							"query": [
+								{ "key": "startDate", "value": "2024-01-01" },
+								{ "key": "endDate", "value": "2026-12-31" }
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+	]
+}
