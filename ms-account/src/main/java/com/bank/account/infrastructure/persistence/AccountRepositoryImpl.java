@@ -1,7 +1,7 @@
 package com.bank.account.infrastructure.persistence;
 
 import com.bank.account.domain.entity.Account;
-import com.bank.account.domain.repository.AccountRepository;
+import com.bank.account.domain.port.out.AccountRepository;
 import com.bank.account.infrastructure.persistence.entity.AccountJpaEntity;
 import com.bank.account.infrastructure.persistence.mapper.AccountJpaMapper;
 import com.bank.account.infrastructure.persistence.repository.AccountJpaRepository;

@@ -7,12 +7,16 @@ import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.exception.InvalidAccountTypeException;
 import com.bank.account.domain.exception.InvalidMovementTypeException;
 import com.bank.account.domain.exception.MovementNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -170,17 +174,73 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    // =========================================================================
+    // Handlers de infraestructura/HTTP — evitan 500 en errores del cliente
+    // =========================================================================
+
+    /**
+     * Maneja JSON malformado en el cuerpo del request.
+     * HTTP 400 - Bad Request
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, "Bad Request",
+                "Malformed JSON request body. Check the syntax and try again.");
+    }
+
+    /**
+     * Maneja métodos HTTP no soportados para un endpoint.
+     * HTTP 405 - Method Not Allowed
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return buildError(HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", ex.getMessage());
+    }
+
+    /**
+     * Maneja parámetros de request faltantes (query params).
+     * HTTP 400 - Bad Request
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, "Bad Request",
+                "Required parameter '" + ex.getParameterName() + "' is missing");
+    }
+
+    /**
+     * Maneja violaciones de integridad de base de datos.
+     * HTTP 409 - Conflict
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return buildError(HttpStatus.CONFLICT, "Conflict",
+                "Data integrity violation. The operation conflicts with existing data.");
+    }
+
+    // =========================================================================
+    // Handler genérico
+    // =========================================================================
+
     /**
      * Maneja excepciones genéricas.
      * HTTP 500 - Internal Server Error
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        error.put("error", "Internal Server Error");
-        error.put("message", "An unexpected error occurred");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                "An unexpected error occurred");
+    }
+
+    // =========================================================================
+    // Helper
+    // =========================================================================
+
+    private ResponseEntity<Map<String, Object>> buildError(HttpStatus status, String error, String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", status.value());
+        body.put("error", error);
+        body.put("message", message);
+        return ResponseEntity.status(status).body(body);
     }
 }

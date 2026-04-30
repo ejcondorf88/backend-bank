@@ -1,7 +1,7 @@
 package com.bank.account.infrastructure.persistence;
 
 import com.bank.account.domain.entity.Movement;
-import com.bank.account.domain.repository.MovementRepository;
+import com.bank.account.domain.port.out.MovementRepository;
 import com.bank.account.infrastructure.persistence.entity.MovementJpaEntity;
 import com.bank.account.infrastructure.persistence.mapper.MovementJpaMapper;
 import com.bank.account.infrastructure.persistence.repository.MovementJpaRepository;

@@ -1,5 +1,7 @@
-package com.bank.customer.domain.service;
+package com.bank.customer.domain.port.in;
 
+import com.bank.customer.application.port.in.command.CreateClientCommand;
+import com.bank.customer.application.port.in.command.UpdateClientCommand;
 import com.bank.customer.domain.entity.Client;
 
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.Optional;
 
 public interface ClientService {
 
-    Client createClient(Client client);
+    Client createClient(CreateClientCommand command);
 
     Optional<Client> findById(Long id);
 
@@ -21,7 +23,7 @@ public interface ClientService {
 
     List<Client> findAllActive();
 
-    Client updateClient(Client client);
+    Client updateClient(UpdateClientCommand command);
 
     void deleteClient(Long clientId);
 

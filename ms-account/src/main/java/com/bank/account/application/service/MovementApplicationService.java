@@ -9,8 +9,8 @@ import com.bank.account.domain.exception.AccountNotFoundException;
 import com.bank.account.domain.exception.InsufficientBalanceException;
 import com.bank.account.domain.exception.InvalidAccountStateException;
 import com.bank.account.domain.exception.MovementNotFoundException;
-import com.bank.account.domain.repository.AccountRepository;
-import com.bank.account.domain.repository.MovementRepository;
+import com.bank.account.domain.port.out.AccountRepository;
+import com.bank.account.domain.port.out.MovementRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

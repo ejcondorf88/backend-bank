@@ -5,6 +5,7 @@ import com.bank.account.application.dto.MovementResponseDto;
 import com.bank.account.domain.entity.Movement;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
 import java.math.BigDecimal;
 
@@ -12,7 +13,7 @@ import java.math.BigDecimal;
  * MapStruct mapper for Movement DTOs.
  * Maps between domain entities and application DTOs.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface MovementApplicationMapper {
 
     /**

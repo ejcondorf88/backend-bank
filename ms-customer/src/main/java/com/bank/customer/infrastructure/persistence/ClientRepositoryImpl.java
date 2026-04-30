@@ -1,7 +1,7 @@
 package com.bank.customer.infrastructure.persistence;
 
 import com.bank.customer.domain.entity.Client;
-import com.bank.customer.domain.repository.ClientRepository;
+import com.bank.customer.domain.port.out.ClientRepository;
 import com.bank.customer.infrastructure.persistence.entity.ClientJpaEntity;
 import com.bank.customer.infrastructure.persistence.mapper.ClientJpaMapper;
 import com.bank.customer.infrastructure.persistence.repository.ClientJpaRepository;

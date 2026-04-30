@@ -1,9 +1,8 @@
-package com.bank.customer.domain.event;
+package com.bank.account.domain.event;
 
 /**
- * Payload tipado para los eventos de Cliente.
- * Reemplaza Map<String, Object> para garantizar type-safety en la mensajería.
- * Al ser un record es inmutable por diseño.
+ * Payload del evento de cliente recibido desde ms-customer.
+ * Contiene los datos completos del cliente para sincronización.
  */
 public record ClientEventPayload(
         Long id,
@@ -14,8 +13,7 @@ public record ClientEventPayload(
         Boolean active
 ) {
     /**
-     * Factory method desde una entidad de dominio ya persistida.
-     * Solo se llama después de que el repositorio asignó el ID.
+     * Factory method para crear payload desde parámetros.
      */
     public static ClientEventPayload from(
             Long id, String name, String identification,

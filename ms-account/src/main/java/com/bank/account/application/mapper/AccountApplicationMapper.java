@@ -5,12 +5,13 @@ import com.bank.account.application.dto.AccountResponseDto;
 import com.bank.account.domain.entity.Account;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
 /**
  * MapStruct mapper for Account DTOs.
  * Maps between domain entities and application DTOs.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface AccountApplicationMapper {
 
     /**

@@ -1,4 +1,6 @@
-package com.bank.customer.domain.event;
+package com.bank.customer.domain.port.out;
+
+import com.bank.customer.domain.event.DomainEvent;
 
 /**
  * Puerto de salida del dominio para publicar eventos.

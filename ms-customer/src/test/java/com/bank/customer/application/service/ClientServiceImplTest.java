@@ -1,11 +1,14 @@
 package com.bank.customer.application.service;
 
+import com.bank.customer.application.mapper.ClientApplicationMapper;
+import com.bank.customer.application.port.in.command.CreateClientCommand;
+import com.bank.customer.application.port.in.command.UpdateClientCommand;
 import com.bank.customer.domain.entity.Client;
-import com.bank.customer.domain.event.DomainEventPublisher;
 import com.bank.customer.domain.exception.ClientAlreadyExistsException;
 import com.bank.customer.domain.exception.ClientNotFoundException;
 import com.bank.customer.domain.exception.InvalidClientStateException;
-import com.bank.customer.domain.repository.ClientRepository;
+import com.bank.customer.domain.port.out.ClientRepository;
+import com.bank.customer.domain.port.out.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,8 +26,8 @@ import static org.mockito.Mockito.*;
 
 /**
  * Pruebas unitarias de la capa de aplicación - ClientServiceImpl
- * Usa Mockito para simular el repositorio y el publicador de eventos
- * Solo prueba lógica de aplicación, no infraestructura
+ * Usa Mockito para simular el repositorio y el publicador de eventos.
+ * El mapper se mockea para aislar el servicio de la implementación del mapper.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Pruebas Unitarias - ClientServiceImpl")
@@ -36,11 +39,14 @@ class ClientServiceImplTest {
     @Mock
     private DomainEventPublisher eventPublisher;
 
+    @Mock
+    private ClientApplicationMapper mapper;
+
     private ClientServiceImpl clientService;
 
     @BeforeEach
     void setUp() {
-        clientService = new ClientServiceImpl(clientRepository, eventPublisher);
+        clientService = new ClientServiceImpl(clientRepository, eventPublisher, mapper);
     }
 
     private Client createTestClient(Long id, String identification, boolean active) {
@@ -58,35 +64,95 @@ class ClientServiceImplTest {
         return client;
     }
 
+    private CreateClientCommand createCommand(String identification, boolean active) {
+        return new CreateClientCommand(
+            "Jose Lema",
+            "Masculino",
+            35,
+            identification,
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            active
+        );
+    }
+
+    private UpdateClientCommand updateCommand(Long id, String identification, boolean active) {
+        return new UpdateClientCommand(
+            id,
+            "Jose Lema",
+            "Masculino",
+            35,
+            identification,
+            "Otavalo sn y principal",
+            "098254785",
+            "1234",
+            active
+        );
+    }
+
     @Test
     @DisplayName("Debe crear cliente cuando no existe")
     void shouldCreateClientWhenNotExists() {
         // Given
+        CreateClientCommand command = createCommand("1720456325", true);
         Client newClient = createTestClient(null, "1720456325", true);
+        Client savedClient = createTestClient(1L, "1720456325", true);
+        when(mapper.toDomain(command)).thenReturn(newClient);
         when(clientRepository.existsByIdentification("1720456325")).thenReturn(false);
-        when(clientRepository.save(any(Client.class))).thenReturn(createTestClient(1L, "1720456325", true));
+        when(clientRepository.save(any(Client.class))).thenReturn(savedClient);
 
         // When
-        Client result = clientService.createClient(newClient);
+        Client result = clientService.createClient(command);
 
         // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("1720456325", result.getIdentification());
+        verify(mapper).toDomain(command);
         verify(clientRepository).existsByIdentification("1720456325");
         verify(clientRepository).save(newClient);
+    }
+
+    @Test
+    @DisplayName("Debe crear cliente con active=true cuando no se envia active")
+    void shouldCreateClientWithDefaultActiveTrue() {
+        // Given
+        CreateClientCommand command = new CreateClientCommand(
+            "Jose Lema", "Masculino", 35, "1720456325",
+            "Otavalo sn y principal", "098254785", "1234", null  // active = null
+        );
+        Client clientWithActiveTrue = new Client(
+            "Jose Lema", "Masculino", 35, "1720456325",
+            "Otavalo sn y principal", "098254785", "1234", true
+        );
+        when(mapper.toDomain(command)).thenReturn(clientWithActiveTrue);
+        when(clientRepository.existsByIdentification("1720456325")).thenReturn(false);
+        when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> {
+            Client saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        // When
+        Client result = clientService.createClient(command);
+
+        // Then
+        assertTrue(result.isActive(), "Si no se envia active, debe crearse como activo (true)");
     }
 
     @Test
     @DisplayName("Debe lanzar excepcion cuando cliente ya existe")
     void shouldThrowExceptionWhenClientAlreadyExists() {
         // Given
+        CreateClientCommand command = createCommand("1720456325", true);
         Client newClient = createTestClient(null, "1720456325", true);
+        when(mapper.toDomain(command)).thenReturn(newClient);
         when(clientRepository.existsByIdentification("1720456325")).thenReturn(true);
 
         // When & Then
         assertThrows(ClientAlreadyExistsException.class, () -> {
-            clientService.createClient(newClient);
+            clientService.createClient(command);
         });
 
         verify(clientRepository).existsByIdentification("1720456325");
@@ -171,16 +237,20 @@ class ClientServiceImplTest {
     @DisplayName("Debe actualizar cliente existente")
     void shouldUpdateExistingClient() {
         // Given
+        UpdateClientCommand command = updateCommand(1L, "1720456325", true);
         Client existingClient = createTestClient(1L, "1720456325", true);
+        when(mapper.toDomain(command)).thenReturn(existingClient);
         when(clientRepository.existsById(1L)).thenReturn(true);
-        when(clientRepository.save(existingClient)).thenReturn(existingClient);
+        when(clientRepository.save(any(Client.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        Client result = clientService.updateClient(existingClient);
+        Client result = clientService.updateClient(command);
 
         // Then
         assertNotNull(result);
         assertEquals(1L, result.getId());
+        assertEquals("1720456325", result.getIdentification());
+        verify(mapper).toDomain(command);
         verify(clientRepository).existsById(1L);
         verify(clientRepository).save(existingClient);
     }
@@ -189,11 +259,11 @@ class ClientServiceImplTest {
     @DisplayName("Debe lanzar excepcion al actualizar cliente sin ID")
     void shouldThrowExceptionWhenUpdatingClientWithoutId() {
         // Given
-        Client clientWithoutId = createTestClient(null, "1720456325", true);
+        UpdateClientCommand command = updateCommand(null, "1720456325", true);
 
         // When & Then
         assertThrows(ClientNotFoundException.class, () -> {
-            clientService.updateClient(clientWithoutId);
+            clientService.updateClient(command);
         });
     }
 
@@ -201,12 +271,12 @@ class ClientServiceImplTest {
     @DisplayName("Debe lanzar excepcion al actualizar cliente inexistente")
     void shouldThrowExceptionWhenUpdatingNonExistentClient() {
         // Given
-        Client nonExistentClient = createTestClient(999L, "1720456325", true);
+        UpdateClientCommand command = updateCommand(999L, "1720456325", true);
         when(clientRepository.existsById(999L)).thenReturn(false);
 
         // When & Then
         assertThrows(ClientNotFoundException.class, () -> {
-            clientService.updateClient(nonExistentClient);
+            clientService.updateClient(command);
         });
     }
 
@@ -259,7 +329,7 @@ class ClientServiceImplTest {
         // Given
         Client inactiveClient = createTestClient(1L, "1720456325", false);
         Client activatedClient = createTestClient(1L, "1720456325", true);
-        
+
         when(clientRepository.findById(1L)).thenReturn(Optional.of(inactiveClient));
         when(clientRepository.save(any(Client.class))).thenReturn(activatedClient);
 
@@ -278,7 +348,7 @@ class ClientServiceImplTest {
         // Given
         Client activeClient = createTestClient(1L, "1720456325", true);
         Client deactivatedClient = createTestClient(1L, "1720456325", false);
-        
+
         when(clientRepository.findById(1L)).thenReturn(Optional.of(activeClient));
         when(clientRepository.save(any(Client.class))).thenReturn(deactivatedClient);
 
